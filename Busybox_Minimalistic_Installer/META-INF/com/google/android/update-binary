@@ -2,7 +2,6 @@
 OUTFD=$2
 ZIPNAME=$3
 mount -o remount,rw /system
-export PATH=/tmp:/sbin
 #-- Permission changer --#
 Set_Perm(){
 	chown $1:$2 $4
@@ -41,9 +40,9 @@ sleep 3
 #-- extracting new busybox --#
 unzip -o "$ZIPNAME" $BBVER -d /tmp
 #-- Removing old Busyboxes --#
-for i in `busybox find /system/xbin -type l`; do
-	if echo `busybox readlink $i` | busybox grep "busybox"; then
-		busybox rm $i
+for i in `/tmp/$BBVER find /system/xbin -type l`; do
+	if echo `/tmp/$BBVER readlink $i` | /tmp/$BBVER grep "busybox"; then
+		/tmp/$BBVER rm $i
 		UI_PR "- Removed old '$i' symlink"
 	fi
 done
@@ -51,12 +50,11 @@ done
 UI_PR " "
 UI_PR "- Installing new busybox"
 mv /tmp/$BBVER /system/xbin/busybox
-export PATH=/tmp:/sbin:/system/xbin
 sleep 3
 Set_Perm 0 2000 0755 /system/xbin/busybox
 UI_PR "- Symlinking busybox"
-for i in `busybox --list`; do 
-	busybox ln -sf /system/xbin/busybox /system/xbin/$i
+for i in `/system/xbin/busybox --list`; do 
+	/system/xbin/busybox ln -sf /system/xbin/busybox /system/xbin/$i
 	UI_PR "- Symlinked '$i'"
 	Set_Perm 0 2000 0755 /system/xbin/$i
 	UI_PR "- Set permissions for '$i'"
