@@ -57,8 +57,12 @@ UI_PR " "
 sleep 2
 SET_PROG 0.4
 #-- Removing old Busyboxes --#
-BB_OLD=`/system/xbin/busybox | head -1 | awk '{print $1," ",$2}'`
-UI_PR "- Removing the previous busybox: $BB_OLD"
+BB_OLD=`/system/xbin/busybox | head -1 | awk '{print $1,": ",$2}'`
+if [ -n "$BB_OLD" ]; then
+	UI_PR "- Removing the previous busybox: $BB_OLD"
+else
+	UI_PR "- No previous busybox installations"
+fi
 UI_PR " "
 sleep 2
 for i in `/system/xbin/busybox --list`; do
