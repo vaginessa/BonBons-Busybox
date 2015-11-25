@@ -1,6 +1,7 @@
 #!/sbin/sh
-OUTFD=$2
+OUTFD=/proc/self/fd/$2
 ZIPNAME=$3
+mount /system
 mount -o remount,rw /system
 #-- Permission changer --#
 Set_Perm(){
@@ -9,55 +10,78 @@ Set_Perm(){
 }
 #-- ui_print --#
 UI_PR(){
-  echo "ui_print $1" > /proc/self/fd/$OUTFD
+  echo "ui_print $1" > "$OUTFD"
+}
+#-- SET_PROGRESS
+SET_PROG () {
+	echo "set_progress $1" > "$OUTFD"
+}
+#-- ERROR --#
+ERROR () {
+	UI_PR "** ERROR **"
+	UI_PR "* Your device isn't combatiple with this installer *"
+	UI_PR "* $1 *"
+	UI_PR "* Exiting *"
+	SET_PROG 1.0
+	exit
 }
 #-- Menu --#
 UI_PR "___________________"
-UI_PR "__Modular Busybox__"
+UI_PR "_Busybox Installer_"
 UI_PR "____By:  BonBon____"
 UI_PR "___________________"
 UI_PR " "
+SET_PROG 0.1
 if [ -n `getprop ro.product.cpu.abi` ]; then
 	case `getprop ro.product.cpu.abi` in
 		*arm*) BBVER=busybox_arm;;
 		*x86*) BBVER=busybox_x86;;
-		*) BBVER=busybox_mips;;
+		*mips*) BBVER=busybox_mips;;
+		*) ERROR "Your processor platform isn't supported";;
 	esac
 elif [ -n `getprop ro.product.cpu.abilist` ]; then
 	case `getprop ro.product.cpu.abilist` in
 		*arm*) BBVER=busybox_arm;;
 		*x86*) BBVER=busybox_x86;;
-		*) BBVER=busybox_mips;;
+		*mips*) BBVER=busybox_mips;;
+		*) ERROR "Your processor platform isn't supported";;
 	esac
 else
-	UI_PR "* Your device isn't combatiple with this zip *"
-	UI_PR "* It doesn't support ro.product.cpu.abi[list] *"
-	UI_PR "* Exiting *"
+	ERROR "* It doesn't support ro.product.cpu.abi[list] *"
 fi
-UI_PR "- Your busybox will be: $BBVER"
-UI_PR " "
-sleep 3
+SET_PROG 0.3
 #-- extracting new busybox --#
 unzip -o "$ZIPNAME" $BBVER -d /tmp
+UI_PR "- Your busybox is: $BBVER"
+UI_PR " "
+sleep 2
+SET_PROG 0.4
 #-- Removing old Busyboxes --#
-for i in `/tmp/$BBVER find /system/xbin -type l`; do
-	if echo `/tmp/$BBVER readlink $i` | /tmp/$BBVER grep "busybox"; then
-		/tmp/$BBVER rm $i
-		UI_PR "- Removed old '$i' symlink"
+BB_OLD=`/system/xbin/busybox | head -1 | awk '{print $1," ",$2}'`
+UI_PR "- Removing the previous busybox: $BB_OLD"
+UI_PR " "
+sleep 2
+for i in `/system/xbin/busybox --list`; do
+	if [ -e /system/xbin/$i ]; then
+		/tmp/$BBVER rm -f $i
+		UI_PR "- Removed old symlink '$i'"
 	fi
 done
+SET_PROG 0.6
 #-- Installing new Busybox --#
 UI_PR " "
 UI_PR "- Installing new busybox"
+UI_PR " "
 mv /tmp/$BBVER /system/xbin/busybox
-sleep 3
 Set_Perm 0 2000 0755 /system/xbin/busybox
-UI_PR "- Symlinking busybox"
+sleep 2
+SET_PROG 0.7
 for i in `/system/xbin/busybox --list`; do 
 	/system/xbin/busybox ln -sf /system/xbin/busybox /system/xbin/$i
-	UI_PR "- Symlinked '$i'"
 	Set_Perm 0 2000 0755 /system/xbin/$i
-	UI_PR "- Set permissions for '$i'"
+	UI_PR "- Symlinked and set permissions for '$i'"
 done
+SET_PROG 0.9
 UI_PR "* DONE! Busybox was installed! *"
 UI_PR " "
+SET_PROG 1.0
