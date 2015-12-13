@@ -39,6 +39,13 @@ if [ -n `getprop ro.product.cpu.abi` ]; then
 		*mips*) BBVER=busybox_mips;;
 		*) ERROR "Your processor platform isn't supported";;
 	esac
+elif [ -n `getprop ro.product.cpu.abi2` ]; then
+	case `getprop ro.product.cpu.abi2` in
+		*arm*) BBVER=busybox_arm;;
+		*x86*) BBVER=busybox_x86;;
+		*mips*) BBVER=busybox_mips;;
+		*) ERROR "Your processor platform isn't supported";;
+	esac
 elif [ -n `getprop ro.product.cpu.abilist` ]; then
 	case `getprop ro.product.cpu.abilist` in
 		*arm*) BBVER=busybox_arm;;
@@ -65,10 +72,10 @@ else
 fi
 UI_PR " "
 sleep 2
-for i in `/system/xbin/busybox --list`; do
-	if [ -e /system/xbin/$i ]; then
-		/tmp/$BBVER rm -f $i
-		UI_PR "- Removed old symlink '$i'"
+for i in `/tmp/$BBVER find /system/xbin -type l`; do
+	if echo "`/tmp/$BBVER readlink $i`" | /tmp/$BBVER grep -q busybox; then
+		/tmp/$BBVER rm $i
+		UI_PR "- Removed old symlink '`echo $i | awk -F / '{print $3}'`'"
 	fi
 done
 SET_PROG 0.6
