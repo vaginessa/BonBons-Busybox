@@ -1,0 +1,35 @@
+27/01/2016
+- Removed obsolete applets from full, modular and minimalistic builds
+- Slimmed the full build
+- (Again) Tweaked the build config to save space and to improve speed
+- Fixed few bugs
+- Updated compilers for (possibly) smaller binaries
+- Added a file containing the changelog
+- Updated the README.md
+- Added a builder script for faster building
+- Added a new build: Snapshot. This is the experiemental version of busybox
+  with all the latest fixes, changes and pathces. It will be build with modular
+  configuration.
+- Added an installer script
+- Removed old installers
+- Added an AROMA installer for people who would like to use a flashable static installer
+13/12/2015
+- Removed applet: Wall, as it soen't work on android
+- Modified build to fix few bugs on older devices
+- Modified build to add speed and to reduce size
+- Modified build to better suit the different busybox builds
+- Moved back to previous way of removing old busybox symlinks, using find, to more completely delete them
+25/11/2015
+- Some minor fixes to installer
+- Some tweaks to text appearance
+- Made previous busybox version shown during installation
+23/11/2015
+- Some minor fixes to the installer
+22/11/2015
+- Added full build
+- Added Minimal build
+- Removed few applets from modular build as they were obsolete / breaking things
+- Added few applets and features to modular build
+20/11/2015
+- Initial build
+

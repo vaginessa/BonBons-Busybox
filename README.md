@@ -65,3 +65,22 @@ or something needs busybox installed. It has everything needed for regular andro
 inside their work, for ensured compatibility and speed / size optimizations!
 
 ## More info and proper download links can be found on this projects XDA thread, [here] (http://forum.xda-developers.com/android/software-hacking/busybox-bonbon-s-busybox-t3253400)
+
+## Build info and other documents
+
+#### **Seting up the source**
+
+Well this one's easy, just download the whole source and blace it somewhere on your computer
+
+#### **Building**
+
+Thanks to some bashy magic all you have to do is:
+1. Navigate to the folder you downloaded the source using a terminal
+2. Call the BUILD script with the specifications you want to build
+3. Wait for the build to finish
+4. Done!
+
+#### **The BUILD script**
+
+Parameters:
+
