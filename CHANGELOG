@@ -10,7 +10,7 @@
 - Added a new build: Snapshot. This is the experiemental version of busybox
   with all the latest fixes, changes and pathces. It will be build with modular
   configuration.
-- Added an installer script
+- Added a dynamic installer script
 - Removed old installers
 - Added an AROMA installer for people who would like to use a flashable static installer
 13/12/2015

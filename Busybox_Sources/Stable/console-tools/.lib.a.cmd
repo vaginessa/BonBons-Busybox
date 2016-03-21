@@ -1,1 +1,0 @@
-cmd_console-tools/lib.a := rm -f console-tools/lib.a; i686-ar  rcs console-tools/lib.a console-tools/clear.o console-tools/kbd_mode.o console-tools/reset.o console-tools/resize.o console-tools/showkey.o
