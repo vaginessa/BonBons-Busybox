@@ -9,6 +9,10 @@
 #	Clean up the code
 #  Make the ERROR function return proper codes
 #	Add beautifications
+#	Show how much space is in /system and how much the installation will take
+#	USE mv INSTEAD OF cp
+#	USE dos2unix FOR CHANGELOG AND DETAILS THINGY
+#	Add busybox removal from /sbin (and /bin)
 #
 #Delete next comment to enable debuging
 #set -x
@@ -87,14 +91,13 @@ echo "Getting info on current busybox versions:"
 echo " "
 wget Insert url here > /dev/null || ERROR "Download failed, make sure you're running this script as root and have an internet connection"
 #-- Get info from downloaded details
-NUMBER=1
 for LINE in $(cat ./BonBons_Busybox_Details.txt); do
+	((NUMBER+=1))
 	echo "$LINE" | grep "#" && continue
 	echo "$LINE" | grep "!" && INST_VER_NEW=$(echo "$LINE" | awk '{print $3}') && continue
 	eval BUSYBOX_BUILD_$NUMBER=$(echo "$LINE" | awk 'NR>2{print $1}')
 	eval BUSYBOX_VERSION_$NUMBER=$(echo "$LINE" | awk 'NR>2{print $2}')
 	eval BUSYBOX_DATE_$NUMBER=$(echo "$LINE" | awk 'NR>2{print $3}')
-	NUMBER=(($NUMBER+1))
 done
 #-- Check installer updates
 if [ $INST_VER_NEW -qt $INST_VER ]; then
@@ -120,7 +123,7 @@ until [ $NUMBERS -eq $NUMBER ]; do
 	NUMBERS=(($NUMBERS+1))
 done
 #-- Downloading new busybox --#
-wget #INSERT URL HERE
+wget #INSERT URL HERE someurl/busybox_ARC_DATE from details
 #-- Removing old Busyboxes --#
 BB_OLD=$(/system/xbin/busybox | head -1 | awk '{print $1,": ",$2}')
 if [ -n "$BB_OLD" ]; then
@@ -153,21 +156,3 @@ for i in `/system/xbin/busybox --list`; do
 done
 echo "* DONE! Busybox was installed! *"
 echo " "
-
-USE df TO DETERMIN IF XBIN HAS ENOUGH SPACE
-USE dos2unix FOR CHANGELOG AND DETAILS THINGY
-
-df# Show how much space is in /system and how much the installation will take
-sleep#
-echo#
-chmod#
-chown#
-mount#
-find#
-awk#
-head#
-grep#
-readlink#
-ln#
-rm#
-cp# USE mv INSTEAD OF cp

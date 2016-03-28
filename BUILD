@@ -103,11 +103,11 @@ for BUILDS in ${BUILD[@]}; do
 		PATH=$PATH:${STARTDIR}/cross-compiler-${COMPILER}/bin
 		#-- Build the binary
 		make CROSS_COMPILE=${ARCS}-
-		[ -e ${STARTDIR}/Busybox_Binaries/Busybox_${BUILDS}_${ARCS} ] && rm -f ${STARTDIR}/Busybox_Binaries/Busybox_${BUILDS}_${ARCS}
+		[ -e ${STARTDIR}/Busybox_Binaries/Busybox_${BUILDS}_${ARCS}* ] && rm -f ${STARTDIR}/Busybox_Binaries/Busybox_${BUILDS}_${ARCS}*
 		if [ $BUILDS = "snapshot" ]; then
-			mv ${STARTDIR}/${SNAPDIR}/busybox ${STARTDIR}/Busybox_Binaries/Busybox_snapshot_${ARCS}
+			mv ${STARTDIR}/${SNAPDIR}/busybox ${STARTDIR}/Busybox_Binaries/Busybox_snapshot_${ARCS}_${DATE}
 		else
-			mv ${STARTDIR}/${STABLEDIR}/busybox ${STARTDIR}/Busybox_Binaries/Busybox_${BUILDS}_${ARCS}
+			mv ${STARTDIR}/${STABLEDIR}/busybox ${STARTDIR}/Busybox_Binaries/Busybox_${BUILDS}_${ARCS}_${DATE}
 		fi
 	done
 	#-- 
