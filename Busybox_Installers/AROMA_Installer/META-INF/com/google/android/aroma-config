@@ -14,10 +14,10 @@
 #
 #-- SOME THINGS
 #
-ini_set("rom_name",             "Busybox 1.24.1");
+ini_set("rom_name",             "Busybox 1.24.2");
 ini_set("rom_author",           "_Bon_Bon");
 ini_set("rom_device",           sysprop("ro.product.name"));
-ini_set("rom_date",             "06/02/2016");
+ini_set("rom_date",             "29/03/2016");
 anisplash(
 	4,
     "splash/a1", 500,
@@ -83,189 +83,25 @@ textbox(
 #
 menubox(
 	"MAIN MENU",
-	"Please select a menu below",
+	"Please select busybox build bellow",
     "@apps",
-	#-- Will be saved in /tmp/aroma/main_removal_menu.prop
-    "main_menu.prop",
+	#-- Will be saved in /tmp/aroma/busybox.prop
+    "busybox.prop",
     
-    "Google Bloatware","Remove Google bloatware","@google",      #-- selected = 1 #@samsung is a icon >^<
-    "General Bloatware","Remove Custom ROM bloatware","@general",      #-- selected = 2
-	"Install Tweaks","Install the MOD","@install"
+    "Full build","Has all the applets an android user could ever dream of","@install",	#-- selected = 1
+    "Modular build","Has all necesary applets","@install",											#-- selected = 2
+	"Minimalistic build","Has only core applets often needed for scripting","@install"
+	"Snapshot build","Busybxo build with the modular config, has all the latest changes, fixes and bugs","@install"
 );
-
-###################################################################################################################
-#
-#-- GOOGLE BLOAT REMOVE MENU
-#
-if prop("main_menu.prop","selected")=="1" then
-	checkbox(
-		"Google Bloatware removal Menu",
-		"Please select the apps you want to remove",
-		"@google",
-		#-- Will be saved in /tmp/aroma/remove_google.prop
-		"remove_google.prop",
-		#
-		#-- Apps --
-		#
-		"Settings","",2,
-		"MASTER SWITCH","If you disable this, no app will be removed",1,
-		"Backup Feature","If you disable this the apps wont get backed up!",1,
-		
-  		"App Bloatware","",2,
-		"Chrome Browser","Googles Chrome browser",0,
-		"Cloud Print","Allows to print files from google drive",0,
-		"Gmail","Googles Email App",0,
-		"Google Calendar","Googles Calendar app",0,
-		"Google Clock","Googles Desk Clock app",0,
-		"Google Docs","Googles Document editor",0,
-		"Google Drive","Googles Storage Cloud",0,
-		"Google Earth","Virtual globe and geographical map",0,
-		"Google Fitness","Googles Fitness app",0,
-		"Google Keep","Googles sticky note creator",0,
-		"Google News & Weather","Googles News & Weather Widget",0,
-		"Google Now Launcher","Googles Launcher",0,
-		"Google Play Books","Googles book reader",0,
-		"Google Play Games","Googles Game achievement app",0,
-		"Google Play Movies & TV","Google Movie & TV app",0,
-		"Google Play Music","Googles Music player",0,
-		"Google Play Newsstand","Googles News app",0,
-		"Google Search","Googles Search function",0,
-		"Google Sheets","Googles Spreadsheet app",0,
-		"Google Slides","Googles Presentation app",0,
-		"Google Text-to-Speech","Googles Text-to-speech function",0,
-		"Google Wallet","Googles Money manager",0,
-		"Hangouts","Googles Messaging app",0,
-		"Maps","Googles Map app",0,
-		"Voice Search for Google play","Ummm. What else am i supposed to say?",0,
-		"Street View on Google Maps","Again, there isn't really much else to say :P",0,
-		"TalkBack","Googles Accessibility Service",0,
-		"Youtube","Googles online video service",0,
-		"Google+","Googles Social Network",1
-	);
-	if
-		confirm(
-			"Install The_Thing",
-			"Do you want to install the MOD too?",
-			"@personalize",
-			"Install",
-			"No"
-		)=="yes"
-    then
-		setvar("install_mod","1");
-	else
-		writetmpfile(
-			"remove_general.prop",
-			"item.9.9=1"
-		);
-		writetmpfile(
-			"mod_tweak.prop",
-			"item.9.9=1"
-		);
-	endif;
-endif;
-
-###################################################################################################################
-#
-#-- GENERAL BLOAT REMOVE MENU
-#
-if prop("main_menu.prop","selected")=="2" then
-	checkbox(
-		"General Bloatware removal Menu",
-		"Please select the apps you want to remove",
-		"@general",
-		#-- Will be saved in /tmp/aroma/remove_general.prop
-		"remove_general.prop",
-	#
-	#-- Apps --
-	#
-		"Settings","",2,
-		"MASTER SWITCH","If you disable this, no app will be removed",1,
-		"Backup Feature","If you disable this the apps wont get backed up!",1,
-		
- 		"App Bloatware","",2,
-		"Apollo","CyanogenMod's Music Player",1,
-  		"Music","AOSP Music Player",1,
-  		"Eleven","CyanogenMod Music Player for Android 5.0 Lollipop",1,
-  		"CellBroadcastReciever","Cell Broadcast Reciever",1,
-  		"CMFileManager","CyanogenMod File Manager",1,
-  		"CMHome","Google Now Search Panel for Trebuchet",1,
-  		"Dashclock","Dashclock widget for lockscreen",1,
-  		"VoicePlus","Google Voice and Hangouts integration",1,
-  		"WhisperPush","Secure Messaging Integration",1,
-		"PicoTts","AOSP Text-To-Speech",1,
-		"SimToolKit","ToolKit Menu for your SIM",1,
-		"HTML Viewer","App to view HTML files",1,
-  		"Browser","AOSP Browser",1,
-		"VideoEditor","MovieStudio",1,
-  		"AudioFx","AudioFX",1,
-  		"DSPManager","Sound Processor & Graphic Equalizer",1,
-  		"Calendar","AOSP Calendar",0,
-  		"Camera2","AOSP Camera",0,
-  		"Email","AOSP Email app and Sync for IMAP, POP3 and Exchange accounts",0,
-		"cLock","Multifunction Clock widget",0,
-		"Calculator","AOSP Calculator",0,
-		"NFCService","NFC Service - WILL BREAK NFC IF REMOVED",0,
-		#
-		#-- Wallpaper --
-		#
-		"Wallpaper Bloatware","",2,
-		"CMWallpapers","Wallpaper bloat",1,
-		"Black Hole", "Live Wallpaper bloat",1,
-  		"Bubbles","Live Wallpaper bloat",1,
-  		"Music Visualization Wallpaper","Live Wallpaper bloat",1,
-		"PhaseBeam","Live Wallpaper bloat",1,
-		"HoloSpiralWallpaper","Live Wallpaper bloat",1,
-		"LiveWallpapers","Live Wallpaper bloat",1,
-  		"MagicSmokeWallpapers","Live Wallpaper bloat",1,
-		#
-		#-- Screensaver --
-		#
-		"Screensaver Bloatware","",2,
-  		"Basic Day Dreams","Screensaver Bloat",1,
-  		"Photo Phase","Screensaver Bloat",1,
-  		"Photo Screensavers","Screensaver Bloat"	,1
-	);
-	if
-		confirm(
-			"Install The_Thing",
-			"Do you want to install the MOD too?",
-			"@personalize",
-			"Install",
-			"No"
-		)=="yes"
-    then
-		setvar("install_mod","1");
-	else
-		writetmpfile(
-			"remove_google.prop",
-			"item.9.9=1"
-		);
-		writetmpfile(
-			"mod_tweak.prop",
-			"item.9.9=1"
-		);
-	endif;
-endif;
-
-###################################################################################################################
-#
-#-- MOD INSTALLATION THINGYS
-#
-if prop("main_menu.prop","selected")=="3" || getvar("install_mod")=="1" then
-	writetmpfile(
-	  "mod_tweak.prop",
-	  "item.1.1=1"
-	);
-endif;
 	
 ###################################################################################################################
 #
-#-- INSTALLATION MENU ON THINGS
+#-- INSTALLATION MENU
 #
 ini_set("text_next", "Flash Now");
 ini_set("icon_next", "@installbutton");
 viewbox(
-    "Ready to Remove",
+    "Ready to Install",
     "The wizard is ready to begin installation.\n\n"+
 	"Press <b>Flash Now</b> to begin the flashing process.\n\n"+
 	"If you want to review or change any of your settings, press <b>Back</b>. Press Menu Key -> Quit Installation to exit the wizard.",

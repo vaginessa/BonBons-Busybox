@@ -47,7 +47,7 @@ vda       :Denys Vlasenko     - Busybox maintainer
 
 ## BonBons Busybox Installer
 
-##### These are my builds of the busybox build for ARM, x86 and MIPS devices, designed to be used on an android device
+##### These are my builds of the busybox build for ARM, ARM64, x86 and MIPS devices, designed to be used on an android device
 
 ### **Why use these builds?**
 ##### Compared to other busybox builds, I have few additional applets added and other obsolete ones removed.

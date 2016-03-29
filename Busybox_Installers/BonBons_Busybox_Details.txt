@@ -1,6 +1,1 @@
 #-- BUILD VERSION DATE --#
-! INSTALLER 10
-full 1241 160216
-modular 1241 160216
-minimalistic 1241 160216
-snapshot snapshot 160216

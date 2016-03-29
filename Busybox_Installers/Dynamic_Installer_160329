@@ -28,7 +28,7 @@ Set_Perm(){
 #-- ERROR --#
 ERROR () {
 	echo "** ERROR **"
-	echo "* Your device isn't compatible with this installer *"
+	echo "* There was a problem: *"
 	echo "* $1 *"
 	echo "* Exiting *"
 	exit 1
@@ -50,6 +50,9 @@ for PAR in ${PARAMETER[*]}; do
 			Copyright (C) 2016 Francisco Pulido Garces (_Bon_Bon)
 			see <http://www.gnu.org/licenses/> for details"
 		;;
+		--changelog|-c)
+		echo "- Initial release"
+		;;
 		*)	#-- Report an error: Non recognized parameter
 			ERROR "At $PAR" "parameter not recognized"
 		;;
@@ -66,48 +69,63 @@ echo "___________________"
 echo "Detecting processor architecture:"
 echo " "
 for CPU in ro.product.cpu.abi ro.product.cpu.abi2 ro.product.cpu.abilist; do
-CPU_STAT=$(getprop $CPU)
-if [ -n $CPU_STAT ]; then
-	case $CPU_STAT in
-		*arm*)
-			echo "$CPU reports processor architecture is ARM"
-			ARCHITECTURE="ARM"
-		;;
-		*x86*)
-			echo "$CPU reports processor architecture is x86"
-			ARCHITECTURE="X86"
-		;;
-		*mips*)
-			echo "$CPU reports processor architecture is MIPS"
-			ARCHITECTURE="MIPS"
-		;;
-		*) ERROR "Reported processor architecture isn't supported";;
-	esac
-fi
+	CPU_STAT=$(getprop $CPU)
+	if [ -n $CPU_STAT ]; then
+		case $CPU_STAT in
+			*arm*)
+				echo "$CPU reports processor architecture is ARM"
+				ARCHITECTURE="ARM"
+			;;
+			*x86*)
+				echo "$CPU reports processor architecture is x86"
+				ARCHITECTURE="X86"
+			;;
+			*mips*)
+				echo "$CPU reports processor architecture is MIPS"
+				ARCHITECTURE="MIPS"
+			;;
+			*) ERROR "Reported processor architecture isn't supported";;
+		esac
+	fi
 done
 [ -z $ARCHITECTURE ] && ERROR "* ro.product.cpu.abi[list] isn't supported *"
 #-- Download details
 echo "Getting info on current busybox versions:"
 echo " "
-wget Insert url here > /dev/null || ERROR "Download failed, make sure you're running this script as root and have an internet connection"
+wget -q https://rawgit.com/DevBonBon/BonBons-Busybox/master/Busybox_Installers/BonBons_Busybox_Details.txt -O Busybox_Details.txt || ERROR "Download failed, make sure you're running this script as root and have an internet connection"
 #-- Get info from downloaded details
-for LINE in $(cat ./BonBons_Busybox_Details.txt); do
+for LINE in $(cat ./Busybox_Details.txt); do
 	((NUMBER+=1))
 	echo "$LINE" | grep "#" && continue
-	echo "$LINE" | grep "!" && INST_VER_NEW=$(echo "$LINE" | awk '{print $3}') && continue
+	echo "$LINE" | grep "!" && INST_VER_NEW=$(echo "$LINE" | awk '{print $3}') && INST_DATE=$(echo "$LINE" | awk '{print $3}') && continue
 	eval BUSYBOX_BUILD_$NUMBER=$(echo "$LINE" | awk 'NR>2{print $1}')
 	eval BUSYBOX_VERSION_$NUMBER=$(echo "$LINE" | awk 'NR>2{print $2}')
 	eval BUSYBOX_DATE_$NUMBER=$(echo "$LINE" | awk 'NR>2{print $3}')
 done
 #-- Check installer updates
 if [ $INST_VER_NEW -qt $INST_VER ]; then
-	echo ""
+	echo "Installer has been updated"
+	echo "Do you want to download it?"
+	read -n 1 -p "[Y/N]: " choice
+	case $choice in
+		y|Y)
+			echo "Downloading"
+			eval "wget https://cdn.rawgit.com/DevBonBon/BonBons-Busybox/master/Busybox_Installers/Dynamic_Installer_${INST_DATE}"
+			rm -f ./Dynamic_Installer
+			mv ./Dynamic_Installer_${INST_DATE} ./Dynamic_Installer
+			echo "Download complete, please restart this script"
+			exit 0
+		;;
+		*)
+			echo "Continuing with busybox install"
+		;;
+	esac
 fi
 #-- Read old details if they exist
 if [ -e /system/xbin/Busybox_Details.txt ]; then
-	BUSYBOX_BUILD_CURRENT=$(awk 'NR==2{print $0; exit}' /system/xbin/Busybox_Details.txt) && echo "Newest version number: $BUSYBOX_VERSION_CURRENT"
-	BUSYBOX_VERSION_CURRENT=$(awk 'NR==2{print $0; exit}' /system/xbin/Busybox_Details.txt) && echo "Newest version number: $BUSYBOX_VERSION_CURRENT"
-	BUSYBOX_DATE_CURRENT=$(awk 'NR==3{print $0; exit}' /system/xbin/Busybox_Details.txt) && echo "Newest version date: $BUSYBOX_DATE_CURRENT"
+	echo "Newest version number: $(awk 'NR==2{print $0; exit}' /system/xbin/Busybox_Details.txt)"
+	echo "Newest version number: $(awk 'NR==2{print $0; exit}' /system/xbin/Busybox_Details.txt)"
+	echo "Newest version date: $(awk 'NR==3{print $0; exit}' /system/xbin/Busybox_Details.txt)"
 else
 	echo "You don't have previous BonBon's Busybox installations"
 	echo " "
@@ -118,12 +136,14 @@ echo -e "  NAME \t VERSION \t BUILD DATE"
 NUMBERS=1
 until [ $NUMBERS -eq $NUMBER ]; do
 	for LINE in BUSYBOX_BUILD_ BUSYBOX_VERSION_ BUSYBOX_DATE_; do
-		eval "echo -e "$NUMBERS ${LINE}$NUMBERS \t""
+		eval "echo -ne "$NUMBERS | ${LINE}$NUMBERS \t""
 	done
 	NUMBERS=(($NUMBERS+1))
 done
+read -n 1 -p : choice
 #-- Downloading new busybox --#
-wget #INSERT URL HERE someurl/busybox_ARC_DATE from details
+eval BUSYBOX_DOWNLOAD=${BUSYBOX_BUILD_}${NUMBER}_${ARCHITECTURE}_${BUSYBOX_DATE_}${NUMBER}
+eval "wget -q https://cdn.rawgit.com/DevBonBon/BonBons-Busybox/tree/master/Busybox_Binaries/${BUSYBOX_DOWNLOAD} -O busybox"
 #-- Removing old Busyboxes --#
 BB_OLD=$(/system/xbin/busybox | head -1 | awk '{print $1,": ",$2}')
 if [ -n "$BB_OLD" ]; then
@@ -134,9 +154,9 @@ fi
 echo " "
 sleep 2
 #-- Add removing from /sbin also
-for i in $(./Busybox_$ARCHITECTURE find /system/xbin -type l); do
-	if echo "$(./Busybox_$ARCHITECTURE readlink $i)" | ./Busybox_$ARCHITECTURE grep -q busybox; then
-		./Busybox_$ARCHITECTURE rm $i
+for i in $(./busybox find /system/xbin -type l); do
+	if echo "$(./busybox readlink $i)" | ./busybox grep -q busybox; then
+		./busybox rm $i
 		echo "- Removed old symlink: $(echo $i | awk -F/ '{print $4}')"
 	fi
 done
@@ -144,8 +164,8 @@ done
 echo " "
 echo "- Installing new busybox"
 echo " "
-mv ./Busybox_$ARCHITECTURE /system/xbin/busybox
-mv ./BonBons_Busybox_Details.txt /system/xbin/Busybox_Details
+mv ./busybox /system/xbin/busybox
+mv ./Busybox_Details.txt /system/xbin/Busybox_Details
 Set_Perm 0 2000 0755 /system/xbin/busybox
 Set_Perm 0 2000 0755 /system/xbin/Busybox_Details
 sleep 2
