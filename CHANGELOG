@@ -8,7 +8,7 @@
 - Updated the README.md
 - Added a builder script for faster building
 - Added a new build: Snapshot. This is the experiemental version of busybox
-  with all the latest fixes, changes and pathces. It will be build with modular
+  with all the latest fixes, changes and bugs. It will be build with modular
   configuration.
 - Added a dynamic installer script
 - Removed old installers
