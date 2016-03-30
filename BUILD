@@ -37,6 +37,10 @@ IGNORE_DETAILS="false"
 UPD_SNAP="false"
 OUTPUT=/dev/null
 DATE=$(date +%y%m%d)
+#
+#	Dynamic installer name inside a variable and then the version
+#	To be used with Details.txt
+#
 #-- Process parameters
 for PAR in ${PARAMETER[*]}; do
 	case $PAR in
@@ -74,6 +78,9 @@ for PAR in ${PARAMETER[*]}; do
 			#-- Latest snapshot source will now be downloaded
 			UPD_SNAP="true"
 		;;
+		--silent)	#-- Disable silence
+			OUTPUT=/dev/tty
+		;;
 		--ignore-installer)	#-- Disables AROMA installer building
 			IGNORE_INSTALLER="true"
 		;;
@@ -92,6 +99,7 @@ done
 #-- Download and setup snapshot source
 if [ "X$UPD_SNAP" = "Xtrue" ]; then
 	echo "| GETTING LATEST SNAPSHOT SOURCE |"
+	[ -d $SNAPDIR ] && rm -fr $SNAPDIR
 	wget https://busybox.net/downloads/snapshots/busybox-snapshot.tar.bz2  >$OUTPUT
 	[ ! $? -eq 0 ] && echo "Download failed, make sure you have right privilages and have an internet connection" && exit 1
 	tar xjvf busybox-snapshot.tar.bz2 >$OUTPUT
@@ -113,7 +121,13 @@ done
 for BUILDS in ${BUILD[@]}; do
 	for ARCS in ${ARC[@]}; do
 		if [ $BUILDS = "snapshot" ]; then
-			cp ${STARTDIR}/Busybox_Sources/configs/modularconfig ${SNAPDIR}/.config
+			if [ ! -e ${SNAPDIR}/.config ]; then
+				cp ${STARTDIR}/Busybox_Sources/configs/modularconfig ${SNAPDIR}/.config
+				echo "| UPDATING OLD CONFIG FILE |"
+				echo "Note, you might have to chooce if to include new features"
+				sleep 4
+				make oldconfig
+			fi
 			cd ${SNAPDIR}
 		else
 			cp ${STARTDIR}/Busybox_Sources/configs/${BUILDS}config ${STABLEDIR}/.config
@@ -173,6 +187,9 @@ if [ "X$IGNORE_DETAILS" = "Xfalse" ]; then
 		done
 	fi
 fi
+#
+#	Add cleaning before exitin (compiler, snapshot etc.)
+#
 #-- Done!
 echo -e "\n| DONE |\n"
 exit 0
