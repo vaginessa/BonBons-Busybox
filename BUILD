@@ -25,16 +25,10 @@ ERROR () {
 #-- Check if working directory is correct
 [[ ! $STARTDIR = */BonBons-Busybox ]] && ERROR "$STARTDIR" "Wrong working directory"
 #-- Process build directories
-if [ -z "$STABLEDIR" ]; then
-	STABLEDIR=$(echo ${STARTDIR}/Busybox_Sources/Stable_*)
-fi
-if [ -z "$SNAPDIR" ]; then
-	SNAPDIR=${STARTDIR}/Busybox_Sources/Snapshot
-fi
+[ -z "$STABLEDIR" ] && STABLEDIR=$(echo ${STARTDIR}/Busybox_Sources/Stable_*)
+[ -z "$SNAPDIR" ] && SNAPDIR=${STARTDIR}/Busybox_Sources/Snapshot
 #-- Set necessary variables
-IGNORE_INSTALLER="false"
-IGNORE_DETAILS="false"
-UPD_SNAP="false"
+DYN_VER=$($(echo ${STARTDIR}/Busybox_Installers/Dynamic_Installer_*) -v | awk '{print $2}')
 OUTPUT=/dev/null
 DATE=$(date +%y%m%d)
 #
@@ -82,26 +76,22 @@ for PAR in ${PARAMETER[*]}; do
 			OUTPUT=/dev/tty
 		;;
 		--ignore-installer)	#-- Disables AROMA installer building
-			IGNORE_INSTALLER="true"
+			BUILD_INSTALLER="true"
 		;;
 		--build-details)	#-- Disables BonBons_Busybox_Details.txt file creation
-			IGNORE_DETAILS="true"
+			BUILD_DETAILS="true"
 		;;
 		*)	#-- Report an error: Non recognized parameter
 			ERROR "At $PAR" "parameter not recognized"
 		;;
 	esac
 done
-#-- If no Compilers given default to all of them
-[ -z "${ARC[*]}" ] && ARC=("mips" "i686" "armv4tl")
-#-- If no builds in buildlist ERROR
-[ -z "${BUILD[*]}" ] && ERROR " " "No build parameters given"
-#-- Download and setup snapshot source
+#-- Download and setup snapshot source if needed
 if [ "X$UPD_SNAP" = "Xtrue" ]; then
+	clear
 	echo "| GETTING LATEST SNAPSHOT SOURCE |"
 	[ -d $SNAPDIR ] && rm -fr $SNAPDIR
-	wget https://busybox.net/downloads/snapshots/busybox-snapshot.tar.bz2  >$OUTPUT
-	[ ! $? -eq 0 ] && echo "Download failed, make sure you have right privilages and have an internet connection" && exit 1
+	wget https://busybox.net/downloads/snapshots/busybox-snapshot.tar.bz2  >$OUTPUT || ERROR "Download failed, make sure you have right privilages and have an internet connection"
 	tar xjvf busybox-snapshot.tar.bz2 >$OUTPUT
 	mv ./busybox ${SNAPDIR}
 	rm -f busybox-snapshot.tar.bz2
@@ -118,11 +108,12 @@ for ARCS in ${ARC[@]}; do
 	fi
 done
 #-- Process the parameters and build the binaries
-for BUILDS in ${BUILD[@]}; do
-	for ARCS in ${ARC[@]}; do
+for BUILDS in ${BUILD[*]}; do
+	for ARCS in ${ARC[*]}; do
 		if [ $BUILDS = "snapshot" ]; then
 			if [ ! -e ${SNAPDIR}/.config ]; then
 				cp ${STARTDIR}/Busybox_Sources/configs/modularconfig ${SNAPDIR}/.config
+				clear
 				echo "| UPDATING OLD CONFIG FILE |"
 				echo "Note, you might have to chooce if to include new features"
 				sleep 4
@@ -133,6 +124,7 @@ for BUILDS in ${BUILD[@]}; do
 			cp ${STARTDIR}/Busybox_Sources/configs/${BUILDS}config ${STABLEDIR}/.config
 			cd ${STABLEDIR}
 		fi
+		clear
 		echo "| BUILDING $BUILDS FOR $ARCS |"
 		#-- Build the binary
 		make CROSS_COMPILE=${ARCS}- >$OUTPUT
@@ -144,52 +136,41 @@ for BUILDS in ${BUILD[@]}; do
 		fi
 	done
 done
-#-- Make AROMA installer if IGNORE_INSTALLER is false
-if [ "X$IGNORE_INSTALLER" = "Xfalse" ]; then
-	echo -e "\n| BUILDING AROMA INSTALLER |\n"
+#-- Make AROMA installer if BUILD_INSTALLER is true
+if [ "X$BUILD_INSTALLER" = "Xtrue" ]; then
+	clear
+	echo -e "| BUILDING AROMA INSTALLER |"
 	[ -e ${STARTDIR}/Busybox_Installers/Installer_AROMA.zip ] && rm -f ${STARTDIR}/Busybox_Installers/Installer_AROMA.zip
 	cd ${STARTDIR}/Busybox_Installers/AROMA_Installer
 	zip -r ${STARTDIR}/Installer_AROMA.zip ./META-INF
 	cd ${STARTDIR}
 	zip -gr ${STARTDIR}/Installer_AROMA.zip ./Busybox_Binaries/*
 fi
-#-- Create details.txt if IGNORE_DETAILS is false
-if [ "X$IGNORE_DETAILS" = "Xfalse" ]; then
+#-- Create details.txt if BUILD_DETAILS is true
+if [ "X$BUILD_DETAILS" = "Xtrue" ]; then
+	echo -e "| CREATING UPDATED Details.txt |"
 	#-- Get stable source version from folder name
 	STABLE_VER=$(echo $STABLEDIR | awk -F_ '{print $2}')
 	echo "#-- | BUILD | VERSION | DATE | --#" > ${STARTDIR}/BonBons_Busybox_Details.txt
-	echo "! INSTALLER $(${STARTDIR}/Busybox_Installers/Dynamic_Installer_* -v | awk '{print $2}')" >> ${STARTDIR}/BonBons_Busybox_Details.txt
+	echo "! INSTALLER $DYN_VER" >> ${STARTDIR}/BonBons_Busybox_Details.txt
 	#-- Process old details.txt and update it
-	if [ -e ${STARTDIR}/BonBons_Busybox_Details.txt ]; then
-		for DETAILS in $(awk '{print $0}' ${STARTDIR}/BonBons_Busybox_Details.txt); do
-			for BUILDS in ${BUILD[@]}; do
-				[ $BUILDS = "snapshot" ] && echo "snapshot snapshot $DATE" >> ${STARTDIR}/BonBons_Busybox_Details.txt && continue
-				if $(echo $DETAILS | grep "$BUILDS"); then
-					echo "$BUILDS $STABLE_VER $DATE" >> ${STARTDIR}/BonBons_Busybox_Details.txt
-				else
-					echo "$DETAILS" >> ${STARTDIR}/BonBons_Busybox_Details.txt
-				fi
-			done
+	for DETAILS in $(awk '{print $0}' ${STARTDIR}/BonBons_Busybox_Details.txt); do
+		for BUILDS in ${BUILD[*]}; do
+			if [ "$BUILDS" = "snapshot" ]; then
+				echo "snapshot snapshot $DATE" >> ${STARTDIR}/BonBons_Busybox_Details.txt
+			elif [[ -n $(echo $DETAILS | grep "$BUILDS") || -z "$DETAILS" ]]; then
+				echo "$BUILDS $STABLE_VER $DATE" >> ${STARTDIR}/BonBons_Busybox_Details.txt
+			else
+				echo "$DETAILS" >> ${STARTDIR}/BonBons_Busybox_Details.txt
+			fi
 		done
-	else	#-- No existing details.txt found, create one
-		for DETAILS in full modular minimalistic snapshot; do
-			for BUILDS in ${BUILD[@]}; do
-				if $(echo $DETAILS | grep "$BUILDS"); then
-					if [ $BUILDS = "snapshot" ]; then
-						echo "snapshot snapshot $DATE" >> ${STARTDIR}/BonBons_Busybox_Details.txt
-					else
-						echo "$BUILDS $STABLE_VER $DATE" >> ${STARTDIR}/BonBons_Busybox_Details.txt
-					fi
-				else
-					echo "$DETAILS 0 0" >> ${STARTDIR}/BonBons_Busybox_Details.txt
-				fi
-			done
-		done
-	fi
+	done
 fi
-#
-#	Add cleaning before exitin (compiler, snapshot etc.)
-#
+echo "| CLEANING UP |"
+rm -fr ${SNAPDIR}
+for ARCS in ${ARC[*]}; do
+	[ -d ${STARTDIR}/cross-compiler-${ARCS} ] && rm -fr ${STARTDIR}/cross-compiler-${ARCS}
+done
 #-- Done!
 echo -e "\n| DONE |\n"
 exit 0
