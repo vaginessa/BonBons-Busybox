@@ -8,6 +8,7 @@
 #TO-DO
 #	Clean up the code
 #  Make the ERROR function return proper codes
+#	When in debug mode don't download, build, etc. if not specifically told so
 #	Replace startdirs with ./ ?
 #
 #-- Get current working dir into a variable
@@ -72,13 +73,10 @@ for PAR in ${PARAMETER[*]}; do
 			#-- Latest snapshot source will now be downloaded
 			UPD_SNAP="true"
 		;;
-		--silent)	#-- Disable silence
-			OUTPUT=/dev/tty
-		;;
-		--ignore-installer)	#-- Disables AROMA installer building
+		--build-installer)	#-- Enables AROMA installer building
 			BUILD_INSTALLER="true"
 		;;
-		--build-details)	#-- Disables BonBons_Busybox_Details.txt file creation
+		--build-details)	#-- Enables BonBons_Busybox_Details.txt file creation
 			BUILD_DETAILS="true"
 		;;
 		*)	#-- Report an error: Non recognized parameter
@@ -91,7 +89,7 @@ if [ "X$UPD_SNAP" = "Xtrue" ]; then
 	clear
 	echo "| GETTING LATEST SNAPSHOT SOURCE |"
 	[ -d $SNAPDIR ] && rm -fr $SNAPDIR
-	wget https://busybox.net/downloads/snapshots/busybox-snapshot.tar.bz2  >$OUTPUT || ERROR "Download failed, make sure you have right privilages and have an internet connection"
+	wget -q https://busybox.net/downloads/snapshots/busybox-snapshot.tar.bz2 || ERROR "Download failed, make sure you have right privilages and have an internet connection"
 	tar xjvf busybox-snapshot.tar.bz2 >$OUTPUT
 	mv ./busybox ${SNAPDIR}
 	rm -f busybox-snapshot.tar.bz2
@@ -102,9 +100,6 @@ for ARCS in ${ARC[@]}; do
 		rm -fr ${STARTDIR}/cross-compiler-${ARCS}
 		tar -xzvf ${STARTDIR}/Busybox_Compilers/${ARCS}.tar.gz >$OUTPUT
 		PATH=$PATH:${STARTDIR}/cross-compiler-${ARCS}/bin
-	else
-		echo "Desired compiler couldn't be found in ./Busybox_Compilers, disabling silent mode incase of errors"
-		OUTPUT=/dev/tty
 	fi
 done
 #-- Process the parameters and build the binaries
@@ -114,9 +109,10 @@ for BUILDS in ${BUILD[*]}; do
 			if [ ! -e ${SNAPDIR}/.config ]; then
 				cp ${STARTDIR}/Busybox_Sources/configs/modularconfig ${SNAPDIR}/.config
 				clear
-				echo "| UPDATING OLD CONFIG FILE |"
+				echo "| UPDATING OLD CONFIG FILE FOR SNAPSHOT |"
 				echo "Note, you might have to chooce if to include new features"
-				sleep 4
+				echo "And everything might not work"
+				read -n 1 -p "Press somekey to continue"
 				make oldconfig
 			fi
 			cd ${SNAPDIR}
@@ -127,7 +123,7 @@ for BUILDS in ${BUILD[*]}; do
 		clear
 		echo "| BUILDING $BUILDS FOR $ARCS |"
 		#-- Build the binary
-		make CROSS_COMPILE=${ARCS}- >$OUTPUT
+		make CROSS_COMPILE=${ARCS}-
 		[ -e ${STARTDIR}/Busybox_Binaries/Busybox_${BUILDS}_${ARCS}* ] && rm -f ${STARTDIR}/Busybox_Binaries/Busybox_${BUILDS}_${ARCS}*
 		if [ $BUILDS = "snapshot" ]; then
 			mv ${SNAPDIR}/busybox ${STARTDIR}/Busybox_Binaries/Busybox_snapshot_${ARCS}_${DATE}
@@ -142,11 +138,13 @@ if [ "X$BUILD_INSTALLER" = "Xtrue" ]; then
 	echo -e "| BUILDING AROMA INSTALLER |"
 	[ -e ${STARTDIR}/Busybox_Installers/Installer_AROMA.zip ] && rm -f ${STARTDIR}/Busybox_Installers/Installer_AROMA.zip
 	cd ${STARTDIR}/Busybox_Installers/AROMA_Installer
-	zip -r ${STARTDIR}/Installer_AROMA.zip ./META-INF
+	zip -r ${STARTDIR}/Busybox_Installers/Installer_AROMA.zip ./META-INF
 	cd ${STARTDIR}
-	zip -gr ${STARTDIR}/Installer_AROMA.zip ./Busybox_Binaries/*
+	zip -gr ${STARTDIR}/Busybox_Installers/Installer_AROMA.zip ./Busybox_Binaries/*
 fi
 #-- Create details.txt if BUILD_DETAILS is true
+#	This doesn't work
+#	Have to update details manually for now
 if [ "X$BUILD_DETAILS" = "Xtrue" ]; then
 	echo -e "| CREATING UPDATED Details.txt |"
 	#-- Get stable source version from folder name

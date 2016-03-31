@@ -1,4 +1,5 @@
-27/01/2016
+31/03/2016
+- Updated source to stable 1.24.2
 - Removed obsolete applets from full, modular and minimalistic builds
 - Slimmed the full build
 - (Again) Tweaked the build config to save space and to improve speed
