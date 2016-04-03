@@ -1,2 +1,5 @@
-#I'm a dummy file
-#All dem magics are in update-binary-installer
+#	Installation happends in INSTALLER
+package_extract_file(/INSTALLER, /tmp);
+package_extract_file(run_program(/tmp/INSTALLER -c), /tmp);
+run_program(/tmp/INSTALLER -i);
+ui_print("| DONE |");

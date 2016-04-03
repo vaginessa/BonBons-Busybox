@@ -1,0 +1,222 @@
+#!./Installer_Busybox ash
+# "BONBON'S DYNAMIC BUSYBOX INSTALLER"
+#Made by _Bon_Bon(@XDA)
+#All parts of this MOD and all the code in it
+#are protected by GNU GPL, version 3
+#Copyright (C) 2016 Francisco Pulido Garces (_Bon_Bon)
+#see <http://www.gnu.org/licenses/> for details
+#TO-DO
+#	Clean up the code ?
+#  Make the ERROR function return proper codes
+#	Add beautifications
+#	Show how much space is in /system and how much the installation will take
+#	USE dos2unix FOR CHANGELOG AND DETAILS THINGY ?
+#
+#Delete next comment to enable debuging
+#set -x
+mount /system
+mount -o remount,rw /system
+#-- Set current version info
+INST_VER=10
+#-- Permission changer
+Set_Perm(){
+	chown $1:$2 $4
+	chmod $3 $4
+}
+#-- ERROR --#
+ERROR () {
+	echo "** ERROR **"
+	echo "* There was a problem: *"
+	echo "* $1 *"
+	echo "* Exiting *"
+	exit 1
+}
+#-- Place parameters inside an array
+PARAMETER=( $(for PAR in $*; do echo "$PAR"; done) )
+#-- Process parameters
+for PAR in ${PARAMETER[*]}; do
+	case $PAR in
+		-d|--debug)	#-- Debugging
+			set -x
+		;;
+		--ignore-root)	#-- Script won't check if it has root privilages
+			IGNORE_ROOT="true"
+		;;
+		--version|-v)
+			echo "VERSION: $INST_VER
+			BONBON'S DYNAMIC BUSYBOX INSTALLER
+			Made by _Bon_Bon(@XDA)
+			All parts of this MOD and all the code in it
+			are protected by GNU GPL, version 3
+			Copyright (C) 2016 Francisco Pulido Garces (_Bon_Bon)
+			see <http://www.gnu.org/licenses/> for details"
+		;;
+		--changelog|-c)
+		echo "- Initial release"
+		;;
+		*)	#-- Report an error: Non recognized parameter
+			ERROR "At $PAR" "parameter not recognized"
+		;;
+	esac
+done
+#-- Check for root if IGNORE_ROOT is false
+if [ ! "X$IGNORE_ROOT" = "Xtrue" ]; then
+	if [ ! $(id -u | sed 's/[^0-9]*//g') -eq 0 ]; then
+		echo "You're not running as root!"
+		echo "Next time type \"su\" before running this script"
+		exit 1
+	fi
+fi
+#-- Menu --#
+echo "___________________"
+echo "_Busybox Installer_"
+echo "____By:  BonBon____"
+echo "___________________"
+echo ""
+echo "___________________"
+#-- Detect processor architecture --#
+echo "| Detecting processor architecture |"
+#-- List of properties to test
+CPU_CHECKS=( ro.product.cpu.abi ro.product.cpu.abi2 ro.product.cpu.abilist )
+for CPU in ${CPU_CHECKS[*]}; do
+	case $(getprop $CPU) in
+		*arm*) ARCHITECTURE="ARM";;	#-- Architecture is arm or arm64
+		*x86*) ARCHITECTURE="X86";;		#-- Architecture is 32bit
+		*mips*) ARCHITECTURE="MIPS";;	#-- Architecture is mips
+		*) echo "| $CPU yelled $(getprop $CPU) while it ran past |";;
+	esac
+	#-- If architecture found, output it and break out of the loop
+	if [ -n $ARCHITECTURE ]; then
+		echo "$CPU reports processor \n architecture is $ARCHITECTURE"
+		break
+	fi
+done
+#-- If ARCHITECTURE is empty ERROR
+[ -z $ARCHITECTURE ] && ERROR "| Reported processor architecture isn't supported |\n| Or ro.product.cpu.abi[list] isn't supported |"
+#-- Download details --#
+echo "Getting info on current busybox versions:"
+echo " "
+wget -q https://rawgit.com/DevBonBon/BonBons-Busybox/master/Busybox_Installers/BonBons_Busybox_Details.txt -O Busybox_Details.txt
+if [ ! $? -eq 0 ]; then	#-- Download failed
+	echo "| If you continue to experience this problem: |"
+	echo "| Make sure you have an internet connection |"
+	echo "| Or try the wget binary available from this mods XDA thread |"
+	ERROR "Download failed:"
+fi
+#-- Check installer updates --#
+if [ $INST_VER_NEW -qt $INST_VER ]; then
+	echo "Installer has been updated"
+	echo "Do you want to download it?"
+	read -n 1 -p "[Y/N]: " choice
+	case $choice in
+		y|Y)
+			echo "Downloading"
+			eval "wget https://cdn.rawgit.com/DevBonBon/BonBons-Busybox/master/Busybox_Installers/Dynamic_Installer_${INST_DATE}"
+			rm ./Dynamic_Installer
+			mv ./Dynamic_Installer_${INST_DATE} ./Dynamic_Installer
+			echo "Download complete, please rerun the script"
+			exit 0
+		;;
+		*)
+			echo "Continuing with busybox install"
+		;;
+	esac
+fi
+#-- Get info from downloaded details --#
+for LINE in $(cat ./Busybox_Details.txt); do
+	((NUMBER+=1))
+	if echo "$LINE" | grep "#"; then	#-- Comment, skip the line
+		continue
+	elif echo "$LINE" | grep "!"; then	#-- Installer version and date
+		INST_VER_NEW=$(echo "$LINE" | awk '{print $3}')
+		INST_DATE=$(echo "$LINE" | awk '{print $4}')
+		continue
+	else	#-- Busybox binaries
+	eval BUSYBOX_BUILD_$NUMBER=$(echo "$LINE" | awk 'NR>2{print $1}')
+	eval BUSYBOX_VERSION_$NUMBER=$(echo "$LINE" | awk 'NR>2{print $2}')
+	eval BUSYBOX_DATE_$NUMBER=$(echo "$LINE" | awk 'NR>2{print $3}')
+	fi
+done
+#-- Read old details if it exist --#
+#	Removed for now, because it served no purpose
+#	Will be replaced with auto update feature at some point
+echo ""
+echo "___________________"
+#-- Prompt what build to install
+echo "Chooce your build from bellow:"
+echo ""
+echo -e "  NAME \t VERSION \t BUILD DATE"
+until [ $NUMBERS -eq $NUMBER ]; do
+	((NUMBERs+=1))
+	for LINE in BUSYBOX_BUILD_ BUSYBOX_VERSION_ BUSYBOX_DATE_; do
+		eval "echo -ne "$NUMBERS | ${LINE}$NUMBERS \t""
+	done
+done
+until [ ! $choice -qt $NUMBERS ]
+read -n 1 -p : choice
+#-- Download new busybox  --#
+eval BUSYBOX_DOWNLOAD=${BUSYBOX_BUILD_}${NUMBER}_${ARCHITECTURE}_${BUSYBOX_DATE_}${choice}
+eval "wget -q https://cdn.rawgit.com/DevBonBon/BonBons-Busybox/tree/master/Busybox_Binaries/${BUSYBOX_DOWNLOAD} -O busybox"
+#-- Handle removal and instal of applets --#
+for BUSY_DIR in "/system/xbin" "/system/bin" "/sbin"; do
+	if [ -e ${BUSY_DIR}/busybox ]; then
+		BB_OLD=$(${BUSY_DIR}/busybox | ./busybox head -1 | ./busybox awk '{print $1,": ",$2}')
+		echo "| Added $BB_OLD into removal list |"
+		BB_LIST[$(((${#BB_LIST[@]})+1))]="$BUSY_DIR"
+	fi
+done
+sleep 3
+#-- Get the new applets inside a string
+APPLETS="$(./busybox --list)"
+for BUSY_DIR in ${BB_LIST[*]}; do
+	DONT_REMOVE="false"
+	for REMOVE in $(./busybox find "${BUSY_DIR}" -type l); do	#-- Find all busybox symlinks in BUSY_DIR
+		if [[ $(echo "$(./busybox readlink $REMOVE)") =~ "busybox" ]]; then
+			if [[ "$REMOVE" =~ "$APPLETS" ]]; then	#-- If the applet is present in new busybox remove it
+				[ ! "X$BUSY_DIR" = "/system/xbin" ] && eval INST_$(echo $BUSY_DIR | ./busybox awk -F/ '{print $1 $2 $3}')+=($REMOVE)
+				rm $REMOVE
+				echo "Removed old symlink: $(echo $REMOVE | ./busybox awk -F/ '{print $4}')"
+			else	#-- Don't delete old busybox, rename it to keep the applet
+				if [ "X$DONT_REMOVE" = "Xfalse" ]; then
+					DONT_REMOVE="true"
+					echo "Can't remove ${BUSY_DIR}/busybox"
+					echo "because it has applets that the new busybox doesn't have"
+					echo "So I'll rename it and repoint the symlinks"
+					sleep 3
+					mv ${BUSY_DIR}/busybox ${BUSY_DIR}/old_busybox
+					Set_Perm 0 2000 0755 ${BUSY_DIR}/old_busybox
+				fi
+				#-- Repoint the symlink
+				echo "| Re-symlinked and set permissions for \"$REMOVE\" |"
+				./busybox ln -sfT ${BUSY_DIR}/old_busybox $REMOVE
+				Set_Perm 0 2000 0755 $REMOVE
+			fi
+		fi
+	done
+	if [ "X$DONT_REMOVE" = "Xfalse" ]; then	#-- If no old applets that aren't in the new busybox, remove old busybox
+		echo "Removed BB_OLD=$(${BUSY_DIR}/busybox | ./busybox head -1 | ./busybox awk '{print $1,": ",$2}')"
+		rm ${BUSY_DIR}/busybox
+	fi
+done
+#-- Install new Busybox --#
+echo " "
+echo "| Installing new busybox: $(./busybox | ./busybox head -1 | ./busybox awk '{print $1,": ",$2}') |"
+echo " "
+sleep 3
+mv ./busybox /system/xbin/busybox
+Set_Perm 0 2000 0755 /system/xbin/busybox
+for INSTALL in $(/system/xbin/busybox --list); do
+	unset BUSY_DIR	#-- Reset directories
+	#-- For all removed applets in bin and sbin, re-install them
+	[[ "$INSTALL" =~ "${INST_systembin}" ]] && BUSY_DIR+=(/system/bin)
+	[[ "$INSTALL" =~ "${INST_sbin}" ]] && BUSY_DIR+=(/sbin)
+	#-- Install all applets in xbin
+	BUSY_DIR+=(/system/xbin)
+	for DIR in ${BUSY_DIR[*]}; do
+		/system/xbin/busybox ln -sf /system/xbin/busybox ${DIR}/$INSTALL
+		Set_Perm 0 2000 0755 ${DIR}/$INSTALL
+		echo "| Symlinked and set permissions for \"${DIR}$INSTALL\" |"
+	done
+done
+echo "| DONE! Busybox was installed! |"
+exit 0

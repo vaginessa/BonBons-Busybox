@@ -17,7 +17,7 @@
 ini_set("rom_name",             "Busybox 1.24.2");
 ini_set("rom_author",           "_Bon_Bon");
 ini_set("rom_device",           sysprop("ro.product.name"));
-ini_set("rom_date",             "29/03/2016");
+ini_set("rom_date",             "31/03/2016");
 anisplash(
 	4,
     "splash/a1", 500,
@@ -70,7 +70,7 @@ endif;
 textbox(
 	"Welcome",
 	
-	"<b>You're about to flash "+ini_get("rom_name")+"'s</b> for <b>"+ini_get("rom_device")+"</b>.\n\n"+
+	"<b>You're about to flash "+ini_get("rom_name")+"</b> for <b>"+ini_get("rom_device")+"</b>.\n\n"+
 	"VERSION DATE\t\t: <b><#selectbg_g>"+ini_get("rom_date")+"</#></b>\n\n"+
 	"Press Next to continue",
 	"@welcome",
@@ -90,8 +90,8 @@ menubox(
     
     "Full build","Has all the applets an android user could ever dream of","@install",	#-- selected = 1
     "Modular build","Has all necesary applets","@install",											#-- selected = 2
-	"Minimalistic build","Has only core applets often needed for scripting","@install"
-	"Snapshot build","Busybxo build with the modular config, has all the latest changes, fixes and bugs","@install"
+	"Minimalistic build","Has only core applets often needed for scripting","@install",
+	"Snapshot build","Busybox build with the modular config, has all the latest changes, fixes and bugs","@install"
 );
 	
 ###################################################################################################################
