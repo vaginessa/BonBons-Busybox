@@ -29,7 +29,6 @@ ERROR () {
 [ -z "$STABLEDIR" ] && STABLEDIR=$(echo ${STARTDIR}/Busybox_Sources/Stable_*)
 [ -z "$SNAPDIR" ] && SNAPDIR=${STARTDIR}/Busybox_Sources/Snapshot
 #-- Set necessary variables
-DYN_VER=$($(echo ${STARTDIR}/Busybox_Installers/Dynamic_Installer_*) -v | awk '{print $2}')
 OUTPUT=/dev/null
 DATE=$(date +%y%m%d)
 #
@@ -43,28 +42,28 @@ for PAR in ${PARAMETER[*]}; do
 			set -x
 		;;
 		--mips|-M)	#-- Add mips to compilerlist
-			ARC[$(((${#ARC[@]})+1))]="mips"
+			ARC+="mips"
 		;;
 		--x86|-X)	#-- Add x86 to compilerlist
-			ARC[$(((${#ARC[@]})+1))]="i686"
+			ARC+="i686"
 		;;
 		--arm|-A)	#-- Add arm to compilerlist
-			ARC[$(((${#ARC[@]})+1))]="armv4tl"
+			ARC+="armv4tl"
 		;;
 		--custom=*)	#-- Add a custom compier to compilerlist
-			ARC[$(((${#ARC[@]})+1))]="$(echo $PAR | awk -F= '{print $2}')"
+			ARC+="$(echo $PAR | awk -F= '{print $2}')"
 		;;
 		--full|-f)	#-- Add full build to buildlist
-			BUILD[$(((${#BUILD[@]})+1))]="full"
+			BUILD+="full"
 		;;
 		--modular|-o)	#-- Add modular build to buildlist
-			BUILD[$(((${#BUILD[@]})+1))]="modular"
+			BUILD+="modular"
 		;;
 		--minimal|-m)		#-- Add minimal build to buildlist
-			BUILD[$(((${#BUILD[@]})+1))]="minimal"
+			BUILD+="minimal"
 		;;
 		--snapshot|-s)	#-- Add snapshot to build list
-			BUILD[$(((${#BUILD[@]})+1))]="snapshot"
+			BUILD+="snapshot"
 			#-- Latest snapshot source will now be downloaded
 			UPD_SNAP="true"
 		;;
@@ -73,7 +72,7 @@ for PAR in ${PARAMETER[*]}; do
 			#-- Latest snapshot source will now be downloaded
 			UPD_SNAP="true"
 		;;
-		--build-installer)	#-- Enables AROMA installer building
+		--build-installer)	#-- Enables static installer building
 			BUILD_INSTALLER="true"
 		;;
 		--build-details)	#-- Enables BonBons_Busybox_Details.txt file creation
@@ -135,21 +134,35 @@ done
 #-- Make AROMA installer if BUILD_INSTALLER is true
 if [ "X$BUILD_INSTALLER" = "Xtrue" ]; then
 	clear
-	echo -e "| BUILDING AROMA INSTALLER |"
-	[ -e ${STARTDIR}/Busybox_Installers/Installer_AROMA.zip ] && rm -f ${STARTDIR}/Busybox_Installers/Installer_AROMA.zip
-	cd ${STARTDIR}/Busybox_Installers/AROMA_Installer
-	zip -r ${STARTDIR}/Busybox_Installers/Installer_AROMA.zip ./META-INF
-	cd ${STARTDIR}
-	zip -gr ${STARTDIR}/Busybox_Installers/Installer_AROMA.zip ./Busybox_Binaries/*
+	echo -e "| BUILDING INSTALLERS |"
+	for FILE in full modular minimalistic snapshot; do
+		[ -e ${STARTDIR}/Busybox_Installers/Installer_${FILE}.zip ] && rm -f ${STARTDIR}/Busybox_Installers/Installer_${FILE}.zip
+		cd ${STARTDIR}/Busybox_Installers/Static_Installer
+		zip -r ${STARTDIR}/Busybox_Installers/Installer_${FILE}.zip ./META-INF
+		cd ${STARTDIR}/Busybox_Binaries/
+		#-- (Maybe) this could be done better
+		for FILES in armv4tl:arm i686:x86 mips:mips; do
+			NAME[1]=$(echo $FILES | awk -F: '{print $1}')
+			NAME[2]=$(echo $FILES | awk -F: '{print $2}')
+			NAME[3]=$(echo ${STARTDIR}/Busybox_Binaries/Busybox_${FILE}_${NAME[1]}_*)
+			NAME[4]=busybox_${NAME[2]}
+			mv ${NAME[3]} ${STARTDIR}/Busybox_Binaries/${NAME[4]}
+			zip -g ${STARTDIR}/Busybox_Installers/Installer_${FILE}.zip ${NAME[4]}
+			mv ${STARTDIR}/Busybox_Binaries/${NAME[4]} ${NAME[3]}
+		done
+	done
 fi
 #-- Create details.txt if BUILD_DETAILS is true
 #	This doesn't work
 #	Have to update details manually for now
 if [ "X$BUILD_DETAILS" = "Xtrue" ]; then
+	# Rather than using old details and variables, use files inside /Busybox_Binaries/
 	echo -e "| CREATING UPDATED Details.txt |"
 	#-- Get stable source version from folder name
 	STABLE_VER=$(echo $STABLEDIR | awk -F_ '{print $2}')
 	echo "#-- | BUILD | VERSION | DATE | --#" > ${STARTDIR}/BonBons_Busybox_Details.txt
+	#-- Get dynamic installer version
+	DYN_VER=$($(echo ${STARTDIR}/Busybox_Installers/Dynamic_Installer_*) -v | awk '{print $2}')
 	echo "! INSTALLER $DYN_VER" >> ${STARTDIR}/BonBons_Busybox_Details.txt
 	#-- Process old details.txt and update it
 	for DETAILS in $(awk '{print $0}' ${STARTDIR}/BonBons_Busybox_Details.txt); do

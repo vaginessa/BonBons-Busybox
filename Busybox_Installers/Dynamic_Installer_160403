@@ -1,4 +1,4 @@
-#!./Installer_Busybox ash
+#!/system/bin/sh
 # "BONBON'S DYNAMIC BUSYBOX INSTALLER"
 #Made by _Bon_Bon(@XDA)
 #All parts of this MOD and all the code in it
@@ -12,8 +12,6 @@
 #	Show how much space is in /system and how much the installation will take
 #	USE dos2unix FOR CHANGELOG AND DETAILS THINGY ?
 #
-#Delete next comment to enable debuging
-#set -x
 mount /system
 mount -o remount,rw /system
 #-- Set current version info

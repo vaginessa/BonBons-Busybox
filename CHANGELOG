@@ -12,8 +12,7 @@
   with all the latest fixes, changes and bugs. It will be build with modular
   configuration.
 - Added a dynamic installer script
-- Removed old installers
-- Added an AROMA installer for people who would like to use a flashable static installer
+- Updated old installers
 13/12/2015
 - Removed applet: Wall, as it soen't work on android
 - Modified build to fix few bugs on older devices
