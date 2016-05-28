@@ -1,20 +1,21 @@
-31/03/2016
+03/06/2016
 - Updated source to stable 1.24.2
 - Removed obsolete applets from full, modular and minimalistic builds
 - Slimmed the full build
 - (Again) Tweaked the build config to save space and to improve speed
 - Fixed few bugs
 - Updated compilers for (possibly) smaller binaries
+- Added smart install
+- Added OTA survival
 - Added a file containing the changelog
-- Updated the README.md
 - Added a builder script for faster building
 - Added a new build: Snapshot. This is the experiemental version of busybox
   with all the latest fixes, changes and bugs. It will be build with modular
   configuration.
-- Added a dynamic installer script
+- Added a dynamic installer script (Still in testing, no download link will be provided)
 - Updated old installers
 13/12/2015
-- Removed applet: Wall, as it soen't work on android
+- Removed applet: Wall, as it doen't work on android
 - Modified build to fix few bugs on older devices
 - Modified build to add speed and to reduce size
 - Modified build to better suit the different busybox builds

@@ -15,7 +15,7 @@
 mount /system
 mount -o remount,rw /system
 #-- Set current version info
-INST_VER=10
+INST_VER=1.0
 #-- Permission changer
 Set_Perm(){
 	chown $1:$2 $4

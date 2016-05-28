@@ -7,9 +7,13 @@
 #see <http://www.gnu.org/licenses/> for details
 #TO-DO
 #	Clean up the code
-#  Make the ERROR function return proper codes
+#	Make the ERROR function return proper codes
 #	When in debug mode don't download, build, etc. if not specifically told so
-#	Replace startdirs with ./ ?
+#	Shorten some commands, by movinf the dir (example: ${STARTDIR}/Busybox_Installers/BonBons_Busybox_Details.txt) into a var
+#	Move from VAR to ${DESIGNATION_varname}
+#	Only  clean up at the end if needed
+#	Features!
+#		- Add a .config updater / menuconfig thingy
 #
 #-- Get current working dir into a variable
 STARTDIR=$PWD
@@ -23,8 +27,6 @@ ERROR () {
 	echo "| REASON: $2 |"
 	exit 1
 }
-#-- Check if working directory is correct
-[[ ! $STARTDIR = */BonBons-Busybox ]] && ERROR "$STARTDIR" "Wrong working directory"
 #-- Process build directories
 [ -z "$STABLEDIR" ] && STABLEDIR=$(echo ${STARTDIR}/Busybox_Sources/Stable_*)
 [ -z "$SNAPDIR" ] && SNAPDIR=${STARTDIR}/Busybox_Sources/Snapshot
@@ -40,6 +42,8 @@ for PAR in ${PARAMETER[*]}; do
 	case $PAR in
 		-d|--debug)	#-- Debugging
 			set -x
+			#-- Make sure that all output is directed to the console
+			OUTPUT=/dev/tty
 		;;
 		--mips|-M)	#-- Add mips to compilerlist
 			ARC+="mips"
@@ -88,7 +92,7 @@ if [ "X$UPD_SNAP" = "Xtrue" ]; then
 	clear
 	echo "| GETTING LATEST SNAPSHOT SOURCE |"
 	[ -d $SNAPDIR ] && rm -fr $SNAPDIR
-	wget -q https://busybox.net/downloads/snapshots/busybox-snapshot.tar.bz2 || ERROR "Download failed, make sure you have right privilages and have an internet connection"
+	wget https://busybox.net/downloads/snapshots/busybox-snapshot.tar.bz2 || ERROR "Download failed, make sure you have an internet connection"
 	tar xjvf busybox-snapshot.tar.bz2 >$OUTPUT
 	mv ./busybox ${SNAPDIR}
 	rm -f busybox-snapshot.tar.bz2
@@ -131,12 +135,13 @@ for BUILDS in ${BUILD[*]}; do
 		fi
 	done
 done
-#-- Make AROMA installer if BUILD_INSTALLER is true
+#-- Make STATIC installer if BUILD_INSTALLER is true
 if [ "X$BUILD_INSTALLER" = "Xtrue" ]; then
 	clear
 	echo -e "| BUILDING INSTALLERS |"
 	for FILE in full modular minimalistic snapshot; do
 		[ -e ${STARTDIR}/Busybox_Installers/Installer_${FILE}.zip ] && rm -f ${STARTDIR}/Busybox_Installers/Installer_${FILE}.zip
+		#-- Zip the META-INF folder
 		cd ${STARTDIR}/Busybox_Installers/Static_Installer
 		zip -r ${STARTDIR}/Busybox_Installers/Installer_${FILE}.zip ./META-INF
 		cd ${STARTDIR}/Busybox_Binaries/
@@ -144,39 +149,48 @@ if [ "X$BUILD_INSTALLER" = "Xtrue" ]; then
 		for FILES in armv4tl:arm i686:x86 mips:mips; do
 			NAME[1]=$(echo $FILES | awk -F: '{print $1}')
 			NAME[2]=$(echo $FILES | awk -F: '{print $2}')
-			NAME[3]=$(echo ${STARTDIR}/Busybox_Binaries/Busybox_${FILE}_${NAME[1]}_*)
-			NAME[4]=busybox_${NAME[2]}
+			NAME[3]=$(echo ${STARTDIR}/Busybox_Binaries/Busybox_${FILE}_${NAME[1]}_*)	#-- Get zip filename into a variable
+			NAME[4]=busybox_${NAME[2]}	#-- Get the correct file name into a variable
 			mv ${NAME[3]} ${STARTDIR}/Busybox_Binaries/${NAME[4]}
-			zip -g ${STARTDIR}/Busybox_Installers/Installer_${FILE}.zip ${NAME[4]}
+			zip -g ${STARTDIR}/Busybox_Installers/Installer_${FILE}.zip ${NAME[4]}	#-- Include the file into the zip
 			mv ${STARTDIR}/Busybox_Binaries/${NAME[4]} ${NAME[3]}
 		done
 	done
 fi
 #-- Create details.txt if BUILD_DETAILS is true
-#	This doesn't work
-#	Have to update details manually for now
 if [ "X$BUILD_DETAILS" = "Xtrue" ]; then
-	# Rather than using old details and variables, use files inside /Busybox_Binaries/
 	echo -e "| CREATING UPDATED Details.txt |"
-	#-- Get stable source version from folder name
-	STABLE_VER=$(echo $STABLEDIR | awk -F_ '{print $2}')
-	echo "#-- | BUILD | VERSION | DATE | --#" > ${STARTDIR}/BonBons_Busybox_Details.txt
+	echo "You'll see what the file contains bellow"
+	echo "#-- | BUILD | ARC | VERSION | DATE | --#"  | tee ${STARTDIR}/Busybox_Installers/BonBons_Busybox_Details.txt
 	#-- Get dynamic installer version
-	DYN_VER=$($(echo ${STARTDIR}/Busybox_Installers/Dynamic_Installer_*) -v | awk '{print $2}')
-	echo "! INSTALLER $DYN_VER" >> ${STARTDIR}/BonBons_Busybox_Details.txt
-	#-- Process old details.txt and update it
-	for DETAILS in $(awk '{print $0}' ${STARTDIR}/BonBons_Busybox_Details.txt); do
-		for BUILDS in ${BUILD[*]}; do
-			if [ "$BUILDS" = "snapshot" ]; then
-				echo "snapshot snapshot $DATE" >> ${STARTDIR}/BonBons_Busybox_Details.txt
-			elif [[ -n $(echo $DETAILS | grep "$BUILDS") || -z "$DETAILS" ]]; then
-				echo "$BUILDS $STABLE_VER $DATE" >> ${STARTDIR}/BonBons_Busybox_Details.txt
+	DYN_VER=$(echo ${STARTDIR}/Busybox_Installers/Dynamic_Installer_* | awk -F_ '{print $2}')
+	echo "! INSTALLER $DYN_VER" | tee -a ${STARTDIR}/Busybox_Installers/BonBons_Busybox_Details.txt
+	#-- Process binaries from /Busybox_Binaries and update the  details.txt
+	for FILE in $(ls ${STARTDIR}/Busybox_Binaries); do
+		if [[ "${FILE}" =~ "Busybox_" ]]; then	#-- Check if the file is a busybox binary, if not, skip it
+			#-- Get BUILD, ARC and DATE from the file name
+			#-- New variable format, rest of the variables will be converted to follow this >at some point< :P
+			DE_build=$(echo ${FILE} | awk -F_ '{print $2}' )
+			DE_arc=$(echo ${FILE} | awk -F_ '{print $3}' )
+			DE_date=$(echo ${FILE} | awk -F_ '{print $4}' )
+			#-- Determine the version
+			if [ "${DE_build}" = "snapshot" ]; then
+				#-- Binary is a snapshot build, mark it as one
+				DE_version="snapshot"
 			else
-				echo "$DETAILS" >> ${STARTDIR}/BonBons_Busybox_Details.txt
+				#-- Binary is a stable build, get stable source version from folder name
+				DE_version=$(echo $STABLEDIR | awk -F_ '{print $3}')
 			fi
-		done
+			#-- Write the info into the details.txt
+			echo "${DE_build} ${DE_arc} ${DE_version} ${DE_date}" | tee -a ${STARTDIR}/Busybox_Installers/BonBons_Busybox_Details.txt
+		else
+			echo "File: ${FILE} is not a busybox binary, skipping it"
+		fi
 	done
+	echo "| DONE! See the updated details above |"
+	read -n 1 -p "Press somekey to continue"
 fi
+#-- Clean up after yourself!
 echo "| CLEANING UP |"
 rm -fr ${SNAPDIR}
 for ARCS in ${ARC[*]}; do
