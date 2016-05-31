@@ -1,5 +1,5 @@
 #-- | BUILD | ARC | VERSION | DATE | --#
-! INSTALLER Installers/Dynamic
+! INSTALLER 10
 full armv4tl 1242 160524
 full i686 1242 160524
 full mips 1242 160524

@@ -159,11 +159,12 @@ if [ "X$BUILD_INSTALLER" = "Xtrue" ]; then
 fi
 #-- Create details.txt if BUILD_DETAILS is true
 if [ "X$BUILD_DETAILS" = "Xtrue" ]; then
+	clear
 	echo -e "| CREATING UPDATED Details.txt |"
-	echo "You'll see what the file contains bellow"
+	echo -e "You'll see what the file contains bellow \n"
 	echo "#-- | BUILD | ARC | VERSION | DATE | --#"  | tee ${STARTDIR}/Busybox_Installers/BonBons_Busybox_Details.txt
 	#-- Get dynamic installer version
-	DYN_VER=$(echo ${STARTDIR}/Busybox_Installers/Dynamic_Installer_* | awk -F_ '{print $2}')
+	DYN_VER=$(echo ${STARTDIR}/Busybox_Installers/DynamicInstaller_* | awk -F_ '{print $3}')
 	echo "! INSTALLER $DYN_VER" | tee -a ${STARTDIR}/Busybox_Installers/BonBons_Busybox_Details.txt
 	#-- Process binaries from /Busybox_Binaries and update the  details.txt
 	for FILE in $(ls ${STARTDIR}/Busybox_Binaries); do
