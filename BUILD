@@ -12,6 +12,10 @@
 #	Shorten some commands, by movinf the dir (example: ${STARTDIR}/Busybox_Installers/BonBons_Busybox_Details.txt) into a var
 #	Move from VAR to ${DESIGNATION_varname}
 #	Only  clean up at the end if needed
+#	Look into x86_64
+#	Move from i686 to x86
+#	Build installers: only build the installer if atleast one binary exists
+#	If make errors, handle it
 #	Features!
 #		- Add a .config updater / menuconfig thingy
 #
@@ -27,9 +31,6 @@ ERROR () {
 	echo "| REASON: $2 |"
 	exit 1
 }
-#-- Process build directories
-[ -z "$STABLEDIR" ] && STABLEDIR=$(echo ${STARTDIR}/Busybox_Sources/Stable_*)
-[ -z "$SNAPDIR" ] && SNAPDIR=${STARTDIR}/Busybox_Sources/Snapshot
 #-- Set necessary variables
 OUTPUT=/dev/null
 DATE=$(date +%y%m%d)
@@ -45,34 +46,40 @@ for PAR in ${PARAMETER[*]}; do
 			#-- Make sure that all output is directed to the console
 			OUTPUT=/dev/tty
 		;;
-		--mips|-M)	#-- Add mips to compilerlist
-			ARC+="mips"
+		--mips)	#-- Add mips to compilerlist
+			ARC[${#ARC[*]}]="mips"
 		;;
-		--x86|-X)	#-- Add x86 to compilerlist
-			ARC+="i686"
+		--mips64)	#-- Add mips to compilerlist
+			ARC[${#ARC[*]}]="mips64"
 		;;
-		--arm|-A)	#-- Add arm to compilerlist
-			ARC+="armv4tl"
+		--x86)	#-- Add x86 to compilerlist
+			ARC[${#ARC[*]}]="x86"
+		;;
+		--x86_64)	#-- Add x86 to compilerlist
+			ARC[${#ARC[*]}]="x86_64"
+		;;
+		--arm)	#-- Add arm to compilerlist
+			ARC[${#ARC[*]}]="arm"
 		;;
 		--custom=*)	#-- Add a custom compier to compilerlist
-			ARC+="$(echo $PAR | awk -F= '{print $2}')"
+			ARC[${#ARC[*]}]="$(echo $PAR | awk -F= '{print $2}')"
 		;;
 		--full|-f)	#-- Add full build to buildlist
-			BUILD+="full"
+			BUILD[${#BUILD[*]}]="full"
 		;;
 		--modular|-o)	#-- Add modular build to buildlist
-			BUILD+="modular"
+			BUILD[${#BUILD[*]}]="modular"
 		;;
 		--minimal|-m)		#-- Add minimal build to buildlist
-			BUILD+="minimal"
+			BUILD[${#BUILD[*]}]="minimal"
 		;;
 		--snapshot|-s)	#-- Add snapshot to build list
-			BUILD+="snapshot"
+			BUILD[${#BUILD[*]}]="snapshot"
 			#-- Latest snapshot source will now be downloaded
 			UPD_SNAP="true"
 		;;
 		--all)	#-- Compile all builds with all default compilers
-			ARC=("mips" "i686" "armv4tl"); BUILD=("full" "modular" "minimalistic" "snapshot")
+			ARC=("mips" "mips64" "x86" "arm" "x86_64"); BUILD=("full" "modular" "minimalistic" "snapshot")
 			#-- Latest snapshot source will now be downloaded
 			UPD_SNAP="true"
 		;;
@@ -82,11 +89,24 @@ for PAR in ${PARAMETER[*]}; do
 		--build-details)	#-- Enables BonBons_Busybox_Details.txt file creation
 			BUILD_DETAILS="true"
 		;;
+		--stable-build=*)	#-- Change the default STABLE build directory
+			BUILD_dir[STABLE]="$(echo $PAR | awk -F= '{print $2}')"
+		;;
+		--umstable-build=*)	#-- Change the default UNSTABLE build directory
+			BUILD_dir[UNSTABLE]="$(echo $PAR | awk -F= '{print $2}')"
+		;;
+		--snapshot-build=*)	#-- Change the default SNAPSHOT build directory
+			BUILD_dir[SNAPSHOT]="$(echo $PAR | awk -F= '{print $2}')"
+		;;
 		*)	#-- Report an error: Non recognized parameter
 			ERROR "At $PAR" "parameter not recognized"
 		;;
 	esac
 done
+#-- Process build directories
+[ -z "${BUILD_dir[STABLE]}" ] && BUILD_dir[STABLE]=$(echo ${STARTDIR}/Busybox_Sources/Stable_*)
+[ -z "${BUILD_dir[UNSTABLE]}" ] && BUILD_dir[UNSTABLE]=$(echo ${STARTDIR}/Busybox_Sources/Unstable_*)
+[ -z "${BUILD_dir[SNAPSHOT]}" ] && BUILD_dir[SNAPSHOT]=${STARTDIR}/Busybox_Sources/Snapshot
 #-- Download and setup snapshot source if needed
 if [ "X$UPD_SNAP" = "Xtrue" ]; then
 	clear
@@ -125,8 +145,9 @@ for BUILDS in ${BUILD[*]}; do
 		fi
 		clear
 		echo "| BUILDING $BUILDS FOR $ARCS |"
-		#-- Build the binary
-		make CROSS_COMPILE=${ARCS}-
+		#-- Build the binary and cleanup
+		make -j 4 CROSS_COMPILE=${ARCS}-
+		make clean
 		[ -e ${STARTDIR}/Busybox_Binaries/Busybox_${BUILDS}_${ARCS}* ] && rm -f ${STARTDIR}/Busybox_Binaries/Busybox_${BUILDS}_${ARCS}*
 		if [ $BUILDS = "snapshot" ]; then
 			mv ${SNAPDIR}/busybox ${STARTDIR}/Busybox_Binaries/Busybox_snapshot_${ARCS}_${DATE}
@@ -145,16 +166,18 @@ if [ "X$BUILD_INSTALLER" = "Xtrue" ]; then
 		cd ${STARTDIR}/Busybox_Installers/Static_Installer
 		zip -r ${STARTDIR}/Busybox_Installers/Installer_${FILE}.zip ./META-INF
 		cd ${STARTDIR}/Busybox_Binaries/
-		#-- (Maybe) this could be done better
-		for FILES in armv4tl:arm i686:x86 mips:mips; do
-			NAME[1]=$(echo $FILES | awk -F: '{print $1}')
-			NAME[2]=$(echo $FILES | awk -F: '{print $2}')
-			NAME[3]=$(echo ${STARTDIR}/Busybox_Binaries/Busybox_${FILE}_${NAME[1]}_*)	#-- Get zip filename into a variable
-			NAME[4]=busybox_${NAME[2]}	#-- Get the correct file name into a variable
-			mv ${NAME[3]} ${STARTDIR}/Busybox_Binaries/${NAME[4]}
-			zip -g ${STARTDIR}/Busybox_Installers/Installer_${FILE}.zip ${NAME[4]}	#-- Include the file into the zip
-			mv ${STARTDIR}/Busybox_Binaries/${NAME[4]} ${NAME[3]}
-		done
+		#-- Move all the binaries for compression
+		if [ -e ${STARTDIR}/Busybox_Binaries/Busybox_${FILE}* ]; then
+			for FILES in arm x86 x86_64 mips; do
+				#-- Include the file into the zip
+				BI_OrigName=${STARTDIR}/Busybox_Binaries/Busybox_${FILE}_${FILES}*
+				mv ${BI_OrigName} ${STARTDIR}/Busybox_Binaries/Busybox_${FILES}
+				zip -g ${STARTDIR}/Busybox_Installers/Installer_${FILE}.zip Busybox_${FILES}
+				mv ${STARTDIR}/Busybox_Binaries/Busybox_${FILES} ${BI_OrigName}
+			done
+		else
+			echo "| Can't find any ${FILE} binaries |"
+		fi
 	done
 fi
 #-- Create details.txt if BUILD_DETAILS is true
@@ -172,6 +195,7 @@ if [ "X$BUILD_DETAILS" = "Xtrue" ]; then
 			#-- Get BUILD, ARC and DATE from the file name
 			#-- New variable format, rest of the variables will be converted to follow this >at some point< :P
 			DE_build=$(echo ${FILE} | awk -F_ '{print $2}' )
+			#-- This should be corrected to arm, x86 or mips
 			DE_arc=$(echo ${FILE} | awk -F_ '{print $3}' )
 			DE_date=$(echo ${FILE} | awk -F_ '{print $4}' )
 			#-- Determine the version

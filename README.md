@@ -53,9 +53,10 @@ vda       :Denys Vlasenko     - Busybox maintainer
 ##### Compared to other busybox builds, I have few additional applets added and other obsolete ones removed.
 ##### There's also some speed and size tweaks in place. But the main improvement, is the three busybox versions:
 
-**A Full build**, that has all the applets an android user could ever dream of.
+**A Full build**, that has all the applets any user could ever dream of.
 Android ROM and OS creators could benefit from including the full build to
-their packages as it has every single applet an android system might need.
+their packages as it has every single applet a system might need.
+(Not suggested for regular users as it has many useless applets)
 
 **A modular build**, that is suited for everyday users. It's just what you need if someone
 or something needs busybox installed. It has everything needed for regular android use
@@ -66,21 +67,4 @@ inside their work, for ensured compatibility and speed / size optimizations!
 
 ## More info and proper download links can be found on this projects XDA thread, [here] (http://forum.xda-developers.com/android/software-hacking/busybox-bonbon-s-busybox-t3253400)
 
-## Build info and other documents
-
-#### **Seting up the source**
-
-Well this one's easy, just download the whole source and blace it somewhere on your computer
-
-#### **Building**
-
-Thanks to some bashy magic all you have to do is:
-1. Navigate to the folder you downloaded the source using a terminal
-2. Call the BUILD script with the specifications you want to build
-3. Wait for the build to finish
-4. Done!
-
-#### **The BUILD script**
-
-Parameters:
-
+## Build info and other documents in /docs/README.md
