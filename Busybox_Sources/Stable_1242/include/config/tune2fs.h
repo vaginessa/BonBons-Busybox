@@ -1,1 +1,1 @@
-#undef CONFIG_TUNE2FS
+#define CONFIG_TUNE2FS 1

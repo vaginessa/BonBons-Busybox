@@ -1,13 +1,10 @@
 03/06/2016
 - Updated source to stable 1.24.2
-- Added Unstable 1.25.0 source
 - Removed obsolete applets from full, modular and minimalistic builds
-- Slimmed the builds
+- Slimmed the full build
 - (Again) Tweaked the build config to save space and to improve speed
 - Fixed few bugs
 - Updated compilers for (possibly) smaller binaries
-- Added builds for x86_64 and mips64
-- Renamed few files for easier building and installing
 - Added smart install
 - Added OTA survival
 - Added a file containing the changelog

@@ -1,2 +1,14 @@
 #-- | BUILD | ARC | VERSION | DATE | --#
 ! INSTALLER 10
+full armv4tl 1242 160524
+full i686 1242 160524
+full mips 1242 160524
+minimalistic armv4tl 1242 160524
+minimalistic i686 1242 160524
+minimalistic mips 1242 160524
+modular armv4tl 1242 160524
+modular i686 1242 160524
+modular mips 1242 160524
+snapshot armv4tl snapshot 160524
+snapshot i686 snapshot 160524
+snapshot mips snapshot 160524

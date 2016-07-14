@@ -1,1 +1,1 @@
-#define CONFIG_GZIP_FAST 0
+#define CONFIG_GZIP_FAST 2

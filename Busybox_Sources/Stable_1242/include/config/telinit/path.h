@@ -1,1 +1,1 @@
-#define CONFIG_TELINIT_PATH ""
+#define CONFIG_TELINIT_PATH "/sbin/telinit"

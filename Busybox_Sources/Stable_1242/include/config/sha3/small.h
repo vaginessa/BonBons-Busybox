@@ -1,1 +1,1 @@
-#define CONFIG_SHA3_SMALL 1
+#define CONFIG_SHA3_SMALL 0

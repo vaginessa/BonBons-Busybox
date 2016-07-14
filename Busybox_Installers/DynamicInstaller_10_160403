@@ -11,7 +11,6 @@
 #	Add beautifications
 #	Show how much space is in /system and how much the installation will take
 #	USE dos2unix FOR CHANGELOG AND DETAILS THINGY ?
-#	Move from i686 to x86
 #
 mount /system
 mount -o remount,rw /system
