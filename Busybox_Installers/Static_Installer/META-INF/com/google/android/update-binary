@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/sbin/sh
 # "BONBON'S STATIC BUSYBOX INSTALLER"
 #Made by _Bon_Bon(@XDA)
 #All parts of this MOD and all the code in it
@@ -7,10 +7,9 @@
 #see <http://www.gnu.org/licenses/> for details
 #TO-DO
 #	Clean up the code ?
-#	Move from $VAR to ${var}
-#	Look into compacting busybox installation
-#	Try to move back to using =~
-#	Look into symlinks to busybox that doesn't exist in the same directory
+#	Move from $VAR to ${DESIGNATION_var}
+#	Move from FUNCTION to DESIGNATION_function
+#	Move from i686 to x86
 #
 #-- Set variables
 OUTFD=/proc/self/fd/$2
@@ -42,7 +41,7 @@ ERROR () {
 }
 #-- Create OTA survival script
 crt_survival () {
-	cat > /system/addon.d/90-BonBons_Busybox.sh <<EOFS
+	cat > /system/addon.d/90-BonBons_Busybox.sh <<'EOFS'
 #!/sbin/sh
 # "BONBON'S BUSYBOX OTA SURVIVER"
 #Made by _Bon_Bon(@XDA)
@@ -51,43 +50,27 @@ crt_survival () {
 #Copyright (C) 2016 Francisco Pulido Garces (_Bon_Bon)
 #see <http://www.gnu.org/licenses/> for details
 #
-#During CM upgrade, this script backs up Busybox and its symlinks
-#/system is formated and reinstalled, then the files are restored
+#During CM upgrade, this script backs up Busybox and after /system
+#is formated and reinstalled, busybox will be reinstalled
 . /tmp/backuptool.functions
 list_files () {
 cat <<EOF
-#DO NOT DELETE COMMENTS! IT WOULD BREAK UPDATE PROCESS
-#Start_Of_busysurvival
-#To be filled ;)
-#End_Of_busysurvival
+/system/xbin/busybox
 EOF
+}
+#-- Permission changer
+Set_Perm(){
+	chown $1:$2 $4
+	chmod $3 $4
 }
 case "$1" in
 backup)
 	list_files | while read FILE DUMMY; do
-		case ${FILE} in
-		"#"*)
-			#-- Is a comment, skip it
-		;;
-		*)
-			backup_file $S/"$FILE"
-		;;
-		esac
+		backup_file $S/"$FILE"
 	done
 ;;
 restore)
-	list_files | while read FILE REPLACEMENT; do
-		case ${FILE} in
-		"#"*)
-			#-- Is a comment, skip it
-		;;
-		*)
-			R=""
-			[ -n "$REPLACEMENT" ] && R="$S/$REPLACEMENT"
-			[ -f "$C/$S/$FILE" ] && restore_file $S/"$FILE" "$R"
-		;;
-		esac
-	done
+	#-- Stub
 ;;
 pre-backup)
 	#-- Stub
@@ -96,7 +79,65 @@ post-backup)
 	#-- Stub
 ;;
 pre-restore)
-	#-- Stub
+	#-- Reinstall busybox
+	BBVER=/tmp/backupdir/system/xbin/busybox
+	#-- Get the applets inside a string
+	LIST_applets="$(${BBVER} --list)"
+	#-- Find all busybox binaries
+	for LOOP_directory in $(find "/bin" -name "busybox" -type f -executable); do
+		#-- Add path to list of directories to check later
+		LIST_directories="$(dirname ${LOOP_directory}) ${LIST_directories}"
+	done
+	if [ -n ${LIST_directories} ]; then
+		#-- Loop trough LIST_directories
+		for LOOP_directory in $(${BBVER} printf '%s\n' ${LIST_directories}); do
+			#-- Reset LOOP_remove for every directory
+			LOOP_remove="false"
+			#-- Find all symlinks in LOOP_directory
+			for LOOP_file in $(${BBVER} find "${LOOP_directory}" -type l); do
+				#-- Change this to be less hardcoded (=~ "busybox")
+				#-- Look into busybox binaries that have links outside the install directory
+				if [[ "$(${BBVER} readlink ${LOOP_file})" = "${LOOP_directory}/busybox" ]]; then
+					#-- Check if the applet exists in the new binary
+					if [[ "${LIST_applets}" =~ $(${BBVER} basename ${LOOP_file}) ]]; then
+						#--Remove the link and include it into the install list
+						rm -f ${LOOP_file}
+						LIST_install="${LOOP_file} ${LIST_install}"
+					else
+						if [ "X ${LOOP_remove}" = "X false" ]; then
+							LOOP_remove="not as false :P"
+							#-- Promt the user and rename the binary
+							echo "${LOOP_directory}/busybox can't be removed,"
+							echo "because it has applets, that the new busybox"
+							echo "doesn't have. It will be renamed and the links repointed"
+							mv ${LOOP_directory}/busybox ${LOOP_directory}/busybox_old
+						fi
+						#-- Repoint the symlink
+						${BBVER} ln -sfT ${LOOP_directory}/busybox_old ${LOOP_file}
+						Set_Perm 0 2000 0755 ${LOOP_file}
+					fi
+				fi
+			done
+		done
+	else
+		echo "| No old busybox binaries found |"
+	fi
+	#-- Install rest of the Busybox applets
+	mv ${BBVER} /system/xbin/busybox
+	BBVER=/system/xbin/busybox
+	Set_Perm 0 2000 0755 /system/xbin/busybox
+	if [ -n ${LIST_install} ]; then
+	#-- Install files found earlier
+		for LOOP_install in $(${BBVER} printf '%s\n' ${LIST_install}); do
+			${BBVER} ln -sfT /system/xbin/busybox /system/xbin/${LOOP_install}
+			Set_Perm 0 2000 0755 /system/xbin/${LOOP_install}
+		done
+	fi
+	#-- Install all applets to xbin
+	for LOOP_install in $(${BBVER} printf '%s\n' ${LIST_applets}); do
+		${BBVER} ln -sfT /system/xbin/busybox /system/xbin/${LOOP_install}
+		Set_Perm 0 2000 0755 /system/xbin/${LOOP_install}
+	done
 ;;
 post-restore)
 	#-- Stub
@@ -105,10 +146,10 @@ esac
 EOFS
 }
 #-- Menu --#
-UI_PR "___________________"
-UI_PR "_Busybox Installer_"
-UI_PR "____By:  BonBon____"
-UI_PR "___________________"
+UI_PR "_________________________"
+UI_PR "_Smart Busybox Installer_"
+UI_PR "_______By:  BonBon_______"
+UI_PR "_________________________"
 #-- Detect processor architecture --#
 UI_PR "| Detecting processor architecture |"
 SET_PROG 0.1
@@ -122,8 +163,9 @@ for CPU in ro.product.cpu.abi ro.product.cpu.abi2 ro.product.cpu.abilist; do
 	esac
 	#-- If architecture found, output it and break out of the loop
 	if [ -n ${BBVER} ]; then
-		UI_PR "$CPU reports processor architecture is ${BBVER}"
-		BBVER=busybox_${BBVER}
+		UI_PR "| $CPU reports processor |"
+		UI_PR "| architecture is ${BBVER} |"
+		BBVER="Busybox_${BBVER}"
 		break
 	fi
 done
@@ -131,77 +173,92 @@ done
 [ -z ${BBVER} ] && ERROR "| Reported processor architecture or ro.product.cpu.abi[list] isn't supported |"
 SET_PROG 0.2
 #-- Extract new busybox
-unzip -o "$ZIPNAME" ${BBVER} -d /tmp
+unzip -o "${ZIPNAME}" ${BBVER} -d /tmp
 BBVER=/tmp/${BBVER}
-UI_PR "___________________"
-UI_PR "| Removing old busybox installations |"
+UI_PR "_________________________"
+UI_PR "| Replacing old busybox installations |"
 SET_PROG 0.3
 sleep 3
 #-- Get the new applets inside a string
-APPLET_LIST="$(${BBVER} --list)"
-#-- List of directories to handle
-for BUSY_DIR in /system/bin /sbin /system/xbin; do
-	DONT_REMOVE="false"
-	for REMOVE in $(${BBVER} find "${BUSY_DIR}" -type l); do	#-- Find all busybox symlinks in BUSY_DIR
-		if [[ "$(${BBVER} readlink ${REMOVE})" =~ "busybox" ]]; then	# BACKUP: -> ${BBVER} readlink ${REMOVE} | grep "busybox"
-			if [[ "${APPLET_LIST}" =~ "${REMOVE##*/}" ]]; then 	#-- If the applet is present in new busybox repoint the symlink
-				[ "${BUSY_DIR}" = "/system/xbin" ] && APPLET_LIST=${APPLET_LIST#${REMOVE##*/}}		#-- Remove the installed applet from APPLET_LIST
-				${BBVER} ln -sfT /system/xbin/busybox ${REMOVE}
-				Set_Perm 0 2000 0755 ${REMOVE}
-				APPLET_SURV="${REMOVE} ${APPLET_SURV}"
-			else	#-- Don't delete old busybox, rename it to keep the applet
-				if [ "X${DONT_REMOVE}" = "Xfalse" ]; then
-					DONT_REMOVE="true"
-					UI_PR "Can't remove ${BUSY_DIR}/busybox"
-					UI_PR "because it has applets that the new busybox doesn't have"
-					UI_PR "So it will be renamed and the symlinks will be repointed"
-					sleep 3
-					mv ${BUSY_DIR}/busybox ${BUSY_DIR}/old_busybox
-					Set_Perm 0 2000 0755 ${BUSY_DIR}/old_busybox
-				fi
-				#-- Repoint the symlink to renamed old_busybox
-				UI_PR "| Re-symlinked and set permissions for \"${REMOVE}\" |"
-				${BBVER} ln -sfT ${BUSY_DIR}/old_busybox ${REMOVE}
-				Set_Perm 0 2000 0755 ${REMOVE}
-			fi
-		else
-			UI_PR "${REMOVE} not a busybox symlink"
-		fi
-	done
-	if [[ "X${DONT_REMOVE}" = "Xfalse" && -e ${BUSY_DIR}/busybox ]]; then	#-- If no old applets that aren't in the new busybox an the old busybox exists, remove old busybox
-		UI_PR "Removed $(${BUSY_DIR}/busybox | ${BBVER} head -1 | ${BBVER} awk '{print $1,": ",$2}') from ${BUSY_DIR}"
-		rm ${BUSY_DIR}/busybox
-	fi
+LIST_applets="$(${BBVER} --list)"
+#-- Find all busybox binaries
+for LOOP_directory in $(find "/bin" -name "busybox" -type f -executable); do
+	#-- Add path to list of directories to check later
+	LIST_directories="$(dirname ${LOOP_directory}) ${LIST_directories}"
 done
-#-- Update or create ota survival script
-if [ -d /system/addon.d ]; then
-	UI_PR "/system/addon.d directory exists"
-	if [ -e /system/addon.d/90-BonBons_Busybox.sh ]; then
-		UI_PR "An old OTA survival script already exists, it will be updated"
-	else
-		UI_PR "No old OTA survival script exists, it will be created"
-		crt_survival
-	fi
-	#-- Update the script
-	mv /system/addon.d/90-BonBons_Busybox.sh /system/addon.d/90-BonBons_Busybox.sh_old
-	printf '%s\n' $APPLET_SURV >> /tmp/file.txt
-	awk 'BEGIN{f=1} /^#Start_Of_busysurvival/{print;system("cat /tmp/file.txt");p=0}/^#End_Of_busysurvival/{p=1};p}' /system/addon.d/90-BonBons_Busybox.sh_old > /system/addon.d/90-BonBons_Busybox.sh
-	rm /system/addon.d/90-BonBons_Busybox.sh_old
-	rm /tmp/file.txt
+if [ -n ${LIST_directories} ]; then
+	#-- Loop trough LIST_directories
+	for LOOP_directory in $(${BBVER} printf '%s\n' ${LIST_directories}); do
+		#-- Reset LOOP_remove for every directory
+		LOOP_remove="false"
+		#-- Find all symlinks in LOOP_directory
+		for LOOP_file in $(${BBVER} find "${LOOP_directory}" -type l); do
+			#-- Change this to be less hardcoded (=~ "busybox")
+			if [[ "$(${BBVER} readlink ${LOOP_file})" = "${LOOP_directory}/busybox" ]]; then
+				#-- Check if the applet exists in the new binary
+				if [[ "${LIST_applets}" =~ $(${BBVER} basename ${LOOP_file}) ]]; then
+					#--Remove the link and include it into the install list
+					rm -f ${LOOP_file}
+					LIST_install="${LOOP_file} ${LIST_install}"
+				else
+					if [ "X ${LOOP_remove}" = "X false" ]; then
+						LOOP_remove="not as false :P"
+						#-- Promt the user and rename the binary
+						UI_PR "${LOOP_directory}/busybox can't be removed,"
+						UI_PR "because it has applets, that the new busybox"
+						UI_PR "doesn't have. It will be renamed and the links repointed"
+						mv ${LOOP_directory}/busybox ${LOOP_directory}/busybox_old
+					fi
+					#-- Repoint the symlink
+					${BBVER} ln -sfT ${LOOP_directory}/busybox_old ${LOOP_file}
+					Set_Perm 0 2000 0755 ${LOOP_file}
+				fi
+			fi
+		done
+	done
+else
+	UI_PR "| No old busybox binaries found |"
 fi
-SET_PROG 0.7
+SET_PROG 0.5
 #-- Install rest of the Busybox applets --#
-UI_PR "___________________"
-UI_PR "| Finishing new busybox: $(${BBVER} | ${BBVER} head -1 | ${BBVER} awk '{print $1,": ",$2}') Installation |"
-UI_PR " "
+UI_PR "_________________________"
+UI_PR "| Finishing installation of: |"
+UI_PR "| $(${BBVER} | ${BBVER} head -1 | ${BBVER} awk '{print $1,": ",$2}') |"
 sleep 3
 mv ${BBVER} /system/xbin/busybox
 BBVER=/system/xbin/busybox
 Set_Perm 0 2000 0755 /system/xbin/busybox
-for INSTALL in $(${BBVER} printf '%s\n' ${APPLET_LIST}); do	#-- Install rest of the applets to xbin
-	${BBVER} ln -sf /system/xbin/busybox /system/xbin/${INSTALL}
-	Set_Perm 0 2000 0755 /system/xbin/${INSTALL}
+if [ -n ${LIST_install} ]; then
+	#-- Install files found earlier
+	for LOOP_install in $(${BBVER} printf '%s\n' ${LIST_install}); do
+		${BBVER} ln -sfT /system/xbin/busybox /system/xbin/${LOOP_install}
+		Set_Perm 0 2000 0755 /system/xbin/${LOOP_install}
+	done
+fi
+#-- Install all applets to xbin
+for LOOP_install in $(${BBVER} printf '%s\n' ${LIST_applets}); do
+	${BBVER} ln -sfT /system/xbin/busybox /system/xbin/${LOOP_install}
+	Set_Perm 0 2000 0755 /system/xbin/${LOOP_install}
 done
+SET_PROG 0.7
+#-- Update / create ota survival script
+UI_PR "_________________________"
+UI_PR "| Create OTA survival script |"
+if [ -d /system/addon.d ]; then
+	UI_PR "! /system/addon.d directory exists"
+	if [ -e /system/addon.d/90-BonBons_Busybox.sh ]; then
+		UI_PR "! An old OTA survival script already"
+		UI_PR "  exists, it will be updated"
+	else
+		UI_PR "! No old OTA survival script exists,"
+		UI_PR "  it will be created"
+	fi
+	#-- Update the script
+	crt_survival
+else
+	UI_PR "! /system/addon.d directory doesn't exist"
+	UI_PR "  OTA survival won't be applied"
+fi
 SET_PROG 0.9
 UI_PR "| DONE! Busybox was installed! |"
 SET_PROG 1.0
