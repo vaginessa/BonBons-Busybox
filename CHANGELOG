@@ -1,8 +1,7 @@
 03/06/2016
 - Updated source to stable 1.24.2
 - Added Unstable 1.25.0 source
-- Removed obsolete applets from full, modular and minimalistic builds
-- Slimmed the builds
+- Removed and added applets to full, modular and minimalistic builds
 - (Again) Tweaked the build config to save space and to improve speed
 - Fixed few bugs
 - Updated compilers for (possibly) smaller binaries
@@ -36,4 +35,3 @@
 - Added few applets and features to modular build
 20/11/2015
 - Initial build
-

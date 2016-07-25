@@ -44,6 +44,7 @@ tobiasa   :Tobias Anderberg
 vapier    :Mike Frysinger
 vda       :Denys Vlasenko     - Busybox maintainer
 ```
+##### Cross-Compilers taken from Aboriginal Linux: http://landley.net/aboriginal/ GitHub: https://github.com/landley/aboriginal
 
 ## BonBons Busybox Installer
 
